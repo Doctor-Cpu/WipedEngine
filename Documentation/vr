@@ -1,0 +1,1 @@
+Engine should provide VR and flatscreen both as valid options. Traditional assumptions of the camera is the same as view is false. VR isnt just a special type of windowing but should be a manager that rendering can digest.

@@ -1,0 +1,14 @@
+Engine should just be a helping hand providing the bare basics to get a game running. OS, grapgics API, etc should be invisible to content and the engine provides abstractions for them.
+
+Engine should use entity component systems. It should also be purely a client-server model, as single player can just spawn both. Both client and server implement a third namespace of shared, which contains things both have as their backbone and can override with client/server-specific details. This client, server, and shared model should also be extended into content.
+
+Content, unlike robust toolbox, should follow a tree like structure. This is to allow user made mods and ovveriding both assets and code. (How to allow deletions or modifications of existing stuff is unkown, release code publicly?)
+
+Engine and content architecture should be designed in a way so tooling (eg. level editor, subtitle editor) is built into the project rather than external projects. This allows sane design and querying components, managers and prototypes.
+
+Managers should do one thing and do it well. For example there may be an input manager that purely handles input and the implementation is invisible to content. Content can then rely on the manager and query it.
+Inversion of control (IoC) should be used for every kind of manager. Because of the client and server model there may be different implementations of managers hence IoC should fetch the relevant implementation of a manager interface.
+
+Every piece of text should be localizable using fluent.
+
+Managers may be submodules and there may be many implementations (eg. windowing may have sdl and glfw).
