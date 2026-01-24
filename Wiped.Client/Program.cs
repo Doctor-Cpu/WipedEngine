@@ -8,6 +8,8 @@ internal class Program
 	static void Main(string[] args)
 	{
 		ClientEngineIoC.Register();
+		SharedEntryPoint.Start();
 		EntryPoint.Start();
+		SharedEntryPoint.Initialize();
 	}
 }
