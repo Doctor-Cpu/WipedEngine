@@ -41,4 +41,16 @@ public static class IoCManager
 	{
 		ContentContainer.Freeze();
 	}
+
+	internal static void Initialize()
+	{
+		EngineContainer.Initialize();
+		ContentContainer.Initialize();
+	}
+
+	internal static void Shutdown()
+	{
+		EngineContainer.Shutdown();
+		ContentContainer.Shutdown();
+	}
 }

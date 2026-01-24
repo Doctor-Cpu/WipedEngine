@@ -2,8 +2,6 @@ namespace Wiped.Shared.Serialization;
 
 internal interface IDataDefinitionRegistryManager
 {
-	void Initialize();
-
 	void Register(Type type);
 
 	void Unregister(Type type);

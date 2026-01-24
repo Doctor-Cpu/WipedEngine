@@ -10,8 +10,10 @@ internal sealed class DataDefinitionRegistryManager : BaseManager, IDataDefiniti
     private readonly Dictionary<string, Type> _byName = new(StringComparer.Ordinal);
     private readonly Dictionary<Type, string> _byType = [];
 
-	public void Initialize()
+	protected internal override void Initialize()
 	{
+		base.Initialize();
+
 		foreach (var asm in _assemblies)
 		{
 			foreach (var type in asm.GetTypes())

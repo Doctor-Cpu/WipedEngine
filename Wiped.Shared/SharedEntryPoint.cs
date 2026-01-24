@@ -1,5 +1,4 @@
 using Wiped.Shared.IoC;
-using Wiped.Shared.Serialization;
 using Wiped.Shared.VFS;
 
 namespace Wiped.Shared;
@@ -10,9 +9,6 @@ internal static class SharedEntryPoint
 	{
 		IoCManager.FreezeEngine();
 		IoCManager.ContentContainer.Import(IoCManager.EngineContainer);
-
-		var dataDefRegistry = IoCManager.Resolve<IDataDefinitionRegistryManager>();
-		dataDefRegistry.Initialize();
 	}
 
 	internal static void Initialize()
@@ -21,5 +17,6 @@ internal static class SharedEntryPoint
 		vfs.LoadContent();
 
 		IoCManager.FreezeContent();
+		IoCManager.Initialize();
 	}
 }

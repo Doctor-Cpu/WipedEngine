@@ -112,6 +112,38 @@ public sealed class IoCContainer
 		_frozen = true;
 	}
 
+	internal void Initialize()
+	{
+		HashSet<Type> visited = new(_bindings.Count);
+		foreach (var type in _bindings.Values)
+		{
+			if (!visited.Add(type))
+				continue;
+
+			if (!TryResolve(type, out var val))
+				throw new InvalidOperationException($"Tried to fetch {type.FullName} when initializing");
+
+			var manager = (BaseManager)val;
+			manager.Initialize();
+		}
+	}
+
+	internal void Shutdown()
+	{
+		HashSet<Type> visited = new(_bindings.Count);
+		foreach (var type in _bindings.Values)
+		{
+			if (!visited.Add(type))
+				continue;
+
+			if (!TryResolve(type, out var val))
+				throw new InvalidOperationException($"Tried to fetch {type.FullName} when shutting down");
+
+			var manager = (BaseManager)val;
+			manager.Shutdown();
+		}
+	}
+
 	internal IoCContainer()
 	{
 	}
