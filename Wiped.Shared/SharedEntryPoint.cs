@@ -7,16 +7,21 @@ internal static class SharedEntryPoint
 {
 	internal static void Start()
 	{
-		IoCManager.FreezeEngine();
-		IoCManager.ContentContainer.Import(IoCManager.EngineContainer);
+		IoCManager.AutoBindEngine();
+		IoCManager.EngineTransitionTo(IoCLifecycle.Resolving);
+
+		var hotReload = IoCManager.Resolve<IHotReloadManager>();
+		hotReload.Initialize();
 	}
 
 	internal static void Initialize()
 	{
 		var vfs = IoCManager.Resolve<IEngineContentVFSManager>();
-		vfs.LoadContent();
+		vfs.Bootstrap();
 
-		IoCManager.FreezeContent();
-		IoCManager.Initialize();
+        IoCManager.ContentTransitionTo(IoCLifecycle.Resolving);
+
+		IoCManager.EngineTransitionTo(IoCLifecycle.Frozen);
+		IoCManager.ContentTransitionTo(IoCLifecycle.Frozen);
 	}
 }

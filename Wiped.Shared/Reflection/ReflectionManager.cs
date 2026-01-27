@@ -1,13 +1,28 @@
 using System.Reflection;
 using Wiped.Shared.IoC;
+using Wiped.Shared.Serialization;
+using Wiped.Shared.VFS;
 
 namespace Wiped.Shared.Reflection;
 
-internal sealed class ReflectionManager : BaseManager, IReflectionManager
+[AutoBind(typeof(IReflectionManager))]
+internal sealed class ReflectionManager : IManager, IReflectionManager, IHotReloadable
 {
 	private readonly List<Assembly> _assemblies = [];
     private readonly Dictionary<Type, List<Type>> _derivedTypeCache = [];
 
+	public Type[] Before => [typeof(DataDefinitionRegistryManager)];
+
+	public void Initialize()
+	{
+		_assemblies.AddRange(AppDomain.CurrentDomain.GetAssemblies());
+	}
+
+	public void Shutdown()
+	{
+		_assemblies.Clear();
+		_derivedTypeCache.Clear();
+	}
 
 	public IEnumerable<Type> GetAllDerivedTypes<TBase>()
 	{
@@ -52,10 +67,5 @@ internal sealed class ReflectionManager : BaseManager, IReflectionManager
 		{
 			return e.Types.Where(t => t != null)!;
 		}
-	}
-
-	public ReflectionManager() : base()
-	{
-		_assemblies.AddRange(AppDomain.CurrentDomain.GetAssemblies());
 	}
 }

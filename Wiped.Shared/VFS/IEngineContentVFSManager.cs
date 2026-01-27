@@ -6,5 +6,9 @@ internal interface IEngineContentVFSManager
 {
 	void Mount(IContentBackend backend);
 
-	void LoadContent();
+	void Bootstrap();
+
+	void Load(VFSConfig config);
+
+	void UnmountAll();
 }

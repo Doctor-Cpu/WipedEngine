@@ -1,29 +1,25 @@
 using System.Diagnostics.CodeAnalysis;
 using Wiped.Shared.IoC;
-using Wiped.Shared.Serialization;
 using Wiped.Shared.VFS.Backends;
+using Wiped.Shared.VFS.Sources;
 
 namespace Wiped.Shared.VFS;
 
-internal sealed class ContentVFSManager : BaseManager, IContentVFSManager, IEngineContentVFSManager
+[AutoBind(typeof(IContentVFSManager), typeof(IEngineContentVFSManager))]
+internal sealed class ContentVFSManager : IManager, IContentVFSManager, IEngineContentVFSManager
 {
-	[Dependency] private readonly IYamlManager _yaml = default!;
-
-	private const string VFSConfigPath = "Assets/vfs.yml";
-
     private readonly Dictionary<ContentPath, IContentBackend> _lookup = [];
 
-	public void LoadContent()
+	public void Bootstrap()
 	{
-		var baseDir = AppContext.BaseDirectory;
-		var fullPath = Path.GetFullPath(Path.Combine(baseDir, VFSConfigPath));
-
-		// prevent escape from baseDir
-		if (!fullPath.StartsWith(baseDir, StringComparison.OrdinalIgnoreCase))
-			throw new UnauthorizedAccessException($"Attempted to read file outside of engine root: {fullPath}");
-
-		var yamlText = File.ReadAllText(fullPath);
-		var config = _yaml.Deserialize<VFSConfig>(yamlText);
+		var bootstrapSource = new EngineContentSource();
+		var bootstrapConfig = bootstrapSource.GetConfig();
+		Load(bootstrapConfig);
+	}
+	
+	public void Load(VFSConfig config)
+	{
+		UnmountAll();
 
 		foreach (var backend in config.Backends)
 			Mount(backend);
@@ -31,6 +27,8 @@ internal sealed class ContentVFSManager : BaseManager, IContentVFSManager, IEngi
 
 	public void Mount(IContentBackend backend)
 	{
+		backend.Validate();
+
 		foreach (var path in backend.Enumerate(true))
 		{
 			if (_lookup.ContainsKey(path))
@@ -38,6 +36,11 @@ internal sealed class ContentVFSManager : BaseManager, IContentVFSManager, IEngi
 
 			_lookup[path] = backend;
 		}
+	}
+
+	public void UnmountAll()
+	{
+		_lookup.Clear();
 	}
 
 	public bool TryGetFile(ContentPath path, [NotNullWhen(true)] out Stream? file)

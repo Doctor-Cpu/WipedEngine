@@ -8,37 +8,26 @@ public sealed class IoCContainer
 	private readonly Dictionary<Type, Type> _bindings = [];
 	private readonly Dictionary<Type, object> _bindingInstances = [];
 
-	private bool _frozen;
+	private IoCLifecycle _state = IoCLifecycle.Constructing;
 
 	private const BindingFlags InjectionFlags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
 
-	public void Bind<TInterface, TImpl>() where TImpl : BaseManager, TInterface, new()
+	private void Bind(Type interfaceType, Type implType)
 	{
-		if (_frozen)
-			throw new InvalidOperationException("IoC is frozen");
+		if (_state != IoCLifecycle.Constructing)
+			throw new InvalidOperationException("Bindings are frozen");
 
-		_bindings[typeof(TInterface)] = typeof(TImpl);
-	}
+		if (!interfaceType.IsAssignableFrom(implType))
+			throw new InvalidOperationException($"{implType.FullName} does not implement {interfaceType.FullName}");
 
-	public void Import(IoCContainer other)
-	{
-		if (_frozen)
-			throw new InvalidOperationException("IoC is frozen");
+		if (!typeof(IManager).IsAssignableFrom(implType))
+			throw new InvalidOperationException($"{implType.FullName} must implement IManager");
 
-		foreach (var (inter, impl) in other._bindings)
-		{
-			if (_bindings.ContainsKey(inter))
-				throw new InvalidOperationException($"Binding conflict for {inter.FullName}");
-
-			_bindings[inter] = impl;
-		}
+		_bindings[interfaceType] = implType;
 	}
 
 	public bool TryResolve<T>([NotNullWhen(true)] out T? val)
 	{
-		if (!_frozen)
-			throw new InvalidOperationException("IoC is not frozen");
-
 		if (TryResolve(typeof(T), out var temp))
 		{
 			val = (T)temp;
@@ -51,15 +40,42 @@ public sealed class IoCContainer
 		}
 	}
 
-	public void ResolveDependencies(object instance, bool throwFrozen = true)
+	public bool TryResolve(Type type, [NotNullWhen(true)] out object? val)
 	{
-		if (!_frozen)
+		if (_state == IoCLifecycle.Constructing)
+			throw new InvalidOperationException("Resolution not allowed yet");
+
+		if (_bindingInstances.TryGetValue(type, out var existing))
 		{
-			if (throwFrozen)
-				throw new InvalidOperationException("IoC is not frozen");
-			else
-				return;
+			val = existing;
+			return true;
 		}
+
+		if (!_bindings.TryGetValue(type, out var implType))
+		{
+			val = null;
+			return false;
+		}
+
+		if (_state == IoCLifecycle.Frozen)
+			throw new InvalidOperationException($"Type {type.FullName} was not resolved before freeze");
+
+
+		var instance = Activator.CreateInstance(implType) ?? throw new InvalidOperationException($"Failed to create {implType.FullName}");
+
+		_bindingInstances[type] = instance;
+
+		IoCManager.ResolveDependencies(instance);
+
+		val = instance;
+		return true;
+	}
+
+
+	public void InjectInto(object instance)
+	{
+		if (_state == IoCLifecycle.Constructing)
+			return;
 
 		var type = instance.GetType();
 
@@ -82,65 +98,30 @@ public sealed class IoCContainer
 		}
 	}
 
-	private bool TryResolve(Type type, [NotNullWhen(true)] out object? val)
+	internal void TransitionTo(IoCLifecycle next)
 	{
-		if (!_frozen)
-			throw new InvalidOperationException("IoC is not frozen");
+		if (next < _state)
+			throw new InvalidOperationException($"Invalid IoC transition {_state} -> {next}");
 
-		if (_bindingInstances.TryGetValue(type, out var existing))
-		{
-			val = existing;
-			return true;
-		}
-
-		if (!_bindings.TryGetValue(type, out var implType))
-		{
-			val = null;
-			return false;
-		}
-
-		var instance = Activator.CreateInstance(implType) ?? throw new InvalidOperationException($"Failed to create {implType.FullName}");
-
-		_bindingInstances[type] = instance;
-
-		val = instance;
-		return true;
+		_state = next;
 	}
 
-	public void Freeze()
+	internal void AutoBind()
 	{
-		_frozen = true;
-	}
-
-	internal void Initialize()
-	{
-		HashSet<Type> visited = new(_bindings.Count);
-		foreach (var type in _bindings.Values)
+		foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
 		{
-			if (!visited.Add(type))
-				continue;
+			foreach (var type in asm.GetTypes())
+			{
+				if (type.IsAbstract || type.IsInterface)
+					continue;
 
-			if (!TryResolve(type, out var val))
-				throw new InvalidOperationException($"Tried to fetch {type.FullName} when initializing");
-
-			var manager = (BaseManager)val;
-			manager.Initialize();
-		}
-	}
-
-	internal void Shutdown()
-	{
-		HashSet<Type> visited = new(_bindings.Count);
-		foreach (var type in _bindings.Values)
-		{
-			if (!visited.Add(type))
-				continue;
-
-			if (!TryResolve(type, out var val))
-				throw new InvalidOperationException($"Tried to fetch {type.FullName} when shutting down");
-
-			var manager = (BaseManager)val;
-			manager.Shutdown();
+				var attrs = type.GetCustomAttributes<AutoBindAttribute>();
+				foreach (var attr in attrs)
+				{
+					foreach (var serviceType in attr.ServiceTypes)
+						Bind(serviceType, type);
+				}
+			}
 		}
 	}
 

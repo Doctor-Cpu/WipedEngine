@@ -3,10 +3,17 @@ using YamlDotNet.Serialization;
 
 namespace Wiped.Shared.Serialization;
 
-internal sealed class YamlManager : BaseManager, IYamlManager
+[AutoBind(typeof(IYamlManager))]
+internal sealed class YamlManager : IManager, IYamlManager
 {
-	private readonly ISerializer _serializer;
-    private readonly IDeserializer _deserializer;
+	private ISerializer _serializer = default!;
+    private IDeserializer _deserializer = default!;
+
+	public void Initialize()
+	{
+		_deserializer = new DeserializerBuilder().Build();
+		_serializer = new SerializerBuilder().Build();
+	}
 
 	public string Serialize<T>(T content)
 	{
@@ -16,11 +23,5 @@ internal sealed class YamlManager : BaseManager, IYamlManager
 	public T Deserialize<T>(string content)
 	{
 		return _deserializer.Deserialize<T>(content);
-	}
-
-	public YamlManager() : base()
-	{
-		_deserializer = new DeserializerBuilder().Build();
-		_serializer = new SerializerBuilder().Build();
 	}
 }

@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Wiped.Shared.IoC;
 
 public static class IoCManager
@@ -5,52 +7,68 @@ public static class IoCManager
 	internal static readonly IoCContainer EngineContainer = new();
 	internal static readonly IoCContainer ContentContainer = new();
 
-	internal static void BindEngine<TInterface, TImpl>() where TImpl : BaseManager, TInterface, new()
+	public static bool TryResolve<T>([NotNullWhen(true)] out T? val)
 	{
-		EngineContainer.Bind<TInterface, TImpl>();
+		if (TryResolve(typeof(T), out var tmp))
+		{
+			val = (T)tmp;
+			return true;
+		}
+
+		val = default;
+		return false;
 	}
 
-	public static void BindContent<TInterface, TImpl>() where TImpl : BaseManager, TInterface, new()
+	public static bool TryResolve(Type type, [NotNullWhen(true)] out object? val)
 	{
-		ContentContainer.Bind<TInterface, TImpl>();
+		if (EngineContainer.TryResolve(type, out val))
+			return true;
+
+		if (ContentContainer.TryResolve(type, out val))
+			return true;
+
+		return false;
+	}
+
+	public static object Resolve(Type type)
+	{
+		if (EngineContainer.TryResolve(type, out var val))
+			return val;
+
+		if (ContentContainer.TryResolve(type, out val))
+			return val;
+
+		throw new InvalidOperationException($"Cannot find resolve type {type.FullName}");
 	}
 
 	public static T Resolve<T>()
 	{
-		if (EngineContainer.TryResolve<T>(out var val))
-			return val;
-
-		if (ContentContainer.TryResolve(out val))
-			return val;
-
-		throw new InvalidOperationException($"Cannot find resolve type {typeof(T)}");
+		return (T)Resolve(typeof(T));
 	}
 
 	public static void ResolveDependencies(object instance)
 	{
-		EngineContainer.ResolveDependencies(instance);
-		ContentContainer.ResolveDependencies(instance, false);
+		EngineContainer.InjectInto(instance);
+		ContentContainer.InjectInto(instance);
 	}
 
-	internal static void FreezeEngine()
+	internal static void EngineTransitionTo(IoCLifecycle next)
 	{
-		EngineContainer.Freeze();
+		EngineContainer.TransitionTo(next);
 	}
 
-	internal static void FreezeContent()
+	internal static void ContentTransitionTo(IoCLifecycle next)
 	{
-		ContentContainer.Freeze();
+		ContentContainer.TransitionTo(next);
+	}
+	
+	internal static void AutoBindEngine()
+	{
+		EngineContainer.AutoBind();
 	}
 
-	internal static void Initialize()
+	internal static void AutoBindContent()
 	{
-		EngineContainer.Initialize();
-		ContentContainer.Initialize();
-	}
-
-	internal static void Shutdown()
-	{
-		EngineContainer.Shutdown();
-		ContentContainer.Shutdown();
+		ContentContainer.AutoBind();
 	}
 }

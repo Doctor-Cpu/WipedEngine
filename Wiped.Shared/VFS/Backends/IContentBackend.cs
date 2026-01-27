@@ -9,4 +9,8 @@ internal interface IContentBackend
 	IEnumerable<ContentPath> Enumerate(bool recursive);
 
 	bool TryOpen(ContentPath path, [NotNullWhen(true)] out Stream? stream);
+
+	void Validate()
+	{
+	}
 }

@@ -1,20 +1,19 @@
 using System.Reflection;
 using Wiped.Shared.IoC;
+using Wiped.Shared.VFS;
 
 namespace Wiped.Shared.Serialization;
 
-internal sealed class DataDefinitionRegistryManager : BaseManager, IDataDefinitionRegistryManager
+[AutoBind(typeof(IDataDefinitionRegistryManager))]
+internal sealed class DataDefinitionRegistryManager : IManager, IDataDefinitionRegistryManager, IHotReloadable
 {
-	private readonly List<Assembly> _assemblies = [];
-
     private readonly Dictionary<string, Type> _byName = new(StringComparer.Ordinal);
     private readonly Dictionary<Type, string> _byType = [];
 
-	protected internal override void Initialize()
+	public void Initialize()
 	{
-		base.Initialize();
-
-		foreach (var asm in _assemblies)
+		var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+		foreach (var asm in assemblies)
 		{
 			foreach (var type in asm.GetTypes())
 			{
@@ -24,6 +23,12 @@ internal sealed class DataDefinitionRegistryManager : BaseManager, IDataDefiniti
 				Register(type);
 			}
 		}
+	}
+
+	public void Shutdown()
+	{
+		_byName.Clear();
+		_byType.Clear();
 	}
 
 	public void Register(Type type)
@@ -60,6 +65,5 @@ internal sealed class DataDefinitionRegistryManager : BaseManager, IDataDefiniti
 
 	public DataDefinitionRegistryManager() : base()
 	{
-		_assemblies.AddRange(AppDomain.CurrentDomain.GetAssemblies());
 	}
 }

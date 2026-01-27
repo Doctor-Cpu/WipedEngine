@@ -10,7 +10,7 @@ internal sealed class DiskContentBackend : IContentBackend
 	public string AbsolutePath = default!;
 
 	[DataField(required: true)]
-	public string VFSRoot { get; set; }
+	public string VFSRoot { get; set; } = default!;
 
 	public IEnumerable<ContentPath> Enumerate(bool recursive)
 	{
