@@ -1,6 +1,5 @@
 using System.Reflection;
 using Wiped.Shared.IoC;
-using Wiped.Shared.Serialization;
 using Wiped.Shared.VFS;
 
 namespace Wiped.Shared.Reflection;
@@ -10,8 +9,6 @@ internal sealed class ReflectionManager : IManager, IReflectionManager, IHotRelo
 {
 	private readonly List<Assembly> _assemblies = [];
     private readonly Dictionary<Type, List<Type>> _derivedTypeCache = [];
-
-	public Type[] Before => [typeof(DataDefinitionRegistryManager)];
 
 	public void Initialize()
 	{
@@ -67,5 +64,10 @@ internal sealed class ReflectionManager : IManager, IReflectionManager, IHotRelo
 		{
 			return e.Types.Where(t => t != null)!;
 		}
+	}
+
+	public ReflectionManager()
+	{
+		Initialize();
 	}
 }

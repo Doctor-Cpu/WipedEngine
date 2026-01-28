@@ -9,6 +9,7 @@ internal static class SharedEntryPoint
 	{
 		IoCManager.AutoBindEngine();
 		IoCManager.EngineTransitionTo(IoCLifecycle.Resolving);
+		IoCManager.CreateInstancesEngine();
 
 		var hotReload = IoCManager.Resolve<IHotReloadManager>();
 		hotReload.Initialize();

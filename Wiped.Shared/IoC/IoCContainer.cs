@@ -6,7 +6,7 @@ namespace Wiped.Shared.IoC;
 public sealed class IoCContainer
 {
 	private readonly Dictionary<Type, Type> _bindings = [];
-	private readonly Dictionary<Type, object> _bindingInstances = [];
+	private readonly Dictionary<Type, object> _instances = [];
 
 	private IoCLifecycle _state = IoCLifecycle.Constructing;
 
@@ -26,6 +26,8 @@ public sealed class IoCContainer
 		_bindings[interfaceType] = implType;
 	}
 
+	internal IEnumerable<object> GetAllInstances() => _instances.Values;
+
 	public bool TryResolve<T>([NotNullWhen(true)] out T? val)
 	{
 		if (TryResolve(typeof(T), out var temp))
@@ -42,13 +44,22 @@ public sealed class IoCContainer
 
 	public bool TryResolve(Type type, [NotNullWhen(true)] out object? val)
 	{
-		if (_state == IoCLifecycle.Constructing)
-			throw new InvalidOperationException("Resolution not allowed yet");
+		return TryResolve(type, out val, true);
+	}
 
-		if (_bindingInstances.TryGetValue(type, out var existing))
+	public bool TryResolve(Type type, [NotNullWhen(true)] out object? val, bool throwConstructing)
+	{
+		if (_state == IoCLifecycle.Constructing)
 		{
-			val = existing;
-			return true;
+			if (throwConstructing)
+			{
+				throw new InvalidOperationException("Resolution not allowed yet");
+			}
+			else
+			{
+				val = null;
+				return false;
+			}
 		}
 
 		if (!_bindings.TryGetValue(type, out var implType))
@@ -57,18 +68,13 @@ public sealed class IoCContainer
 			return false;
 		}
 
-		if (_state == IoCLifecycle.Frozen)
-			throw new InvalidOperationException($"Type {type.FullName} was not resolved before freeze");
+		if (_instances.TryGetValue(implType, out var existing))
+		{
+			val = existing;
+			return true;
+		}
 
-
-		var instance = Activator.CreateInstance(implType) ?? throw new InvalidOperationException($"Failed to create {implType.FullName}");
-
-		_bindingInstances[type] = instance;
-
-		IoCManager.ResolveDependencies(instance);
-
-		val = instance;
-		return true;
+		throw new InvalidOperationException($"{type.FullName} has an implmenentation of {implType.FullName} yet has no instance");
 	}
 
 
@@ -123,6 +129,21 @@ public sealed class IoCContainer
 				}
 			}
 		}
+	}
+
+	internal void CreateInstances()
+	{
+		if (_state != IoCLifecycle.Resolving)
+			throw new InvalidOperationException($"Tried to create instances while not resolving");
+
+		foreach (var (type, implType) in _bindings)
+		{
+			var instance = Activator.CreateInstance(implType) ?? throw new InvalidOperationException($"Failed to create {implType.FullName}");
+			_instances[implType] = instance;
+		}
+
+		foreach (var instance in _instances.Values)
+			IoCManager.ResolveDependencies(instance);
 	}
 
 	internal IoCContainer()

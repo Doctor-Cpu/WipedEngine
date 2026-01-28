@@ -1,10 +1,11 @@
 using Wiped.Shared.IoC;
+using Wiped.Shared.VFS;
 using YamlDotNet.Serialization;
 
 namespace Wiped.Shared.Serialization;
 
 [AutoBind(typeof(IYamlManager))]
-internal sealed class YamlManager : IManager, IYamlManager
+internal sealed class YamlManager : IManager, IYamlManager, IHotReloadable
 {
 	private ISerializer _serializer = default!;
     private IDeserializer _deserializer = default!;

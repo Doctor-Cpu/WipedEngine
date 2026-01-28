@@ -3,6 +3,8 @@
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
     	<RootNamespace>Wiped.Tools</RootNamespace>
+		<OutputPath>..\..\bin\Wiped.Tools\</OutputPath>
+    	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<OutputType>Exe</OutputType>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>

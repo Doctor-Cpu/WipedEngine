@@ -90,7 +90,6 @@ internal sealed class HotReloadManager : IManager, IHotReloadManager
 		}
 
 #if DEBUG
-
 		if (ordered.Count != systems.Count)
 		{
 			var message = new StringBuilder("HotReload dependency cycle detected:");

@@ -24,6 +24,10 @@ internal sealed class LifecycleManager : IManager, ILifecycleManager, IHotReload
 		if (_instances.TryGetValue(type, out var existing))
 			return existing;
 
+#if DEBUG
+		if (typeof(IManager).IsAssignableFrom(type))
+			throw new InvalidOperationException($"Tried to fetch an instance of a manager rather than the interface for {type.FullName}");
+#endif
 
 		// prefer ioc
 		if (IoCManager.TryResolve(type, out var resolved))
@@ -43,9 +47,25 @@ internal sealed class LifecycleManager : IManager, ILifecycleManager, IHotReload
 
     public IEnumerable<T> GetAll<T>()
 	{
-		var types = _reflection.GetAllDerivedTypes<T>();
+		// ioc owned
+		foreach (var instance in IoCManager.GetAllResolved())
+		{
+			if (instance is T t)
+			{
+				_instances[instance.GetType()] = instance;
+				yield return t;
+			}
+		}
 
+		// life cycle owned
+		var types = _reflection.GetAllDerivedTypes<T>();
 		foreach (var type in types)
+		{
+			// already handled
+			if (typeof(IManager).IsAssignableFrom(type))
+				continue;
+
 			yield return (T)Get(type);
+		}
 	}
 }

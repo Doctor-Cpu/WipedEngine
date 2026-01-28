@@ -3,6 +3,8 @@
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
 		<RootNamespace>Wiped.Server</RootNamespace>
+		<OutputPath>..\..\bin\Wiped.Server\</OutputPath>
+    	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<OutputType>Exe</OutputType>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>

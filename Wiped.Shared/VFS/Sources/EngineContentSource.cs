@@ -6,6 +6,7 @@ namespace Wiped.Shared.VFS.Sources;
 internal sealed class EngineContentSource : IContentSource
 {
 	[Dependency] private readonly IYamlManager _yaml = default!;
+	[Dependency] private readonly IEnginePathsManager _paths = default!;
 
 	private const string VFSConfigPath = "Assets/vfs.yml";
 
@@ -13,15 +14,17 @@ internal sealed class EngineContentSource : IContentSource
 
 	public VFSConfig GetConfig()
 	{
-		var baseDir = AppContext.BaseDirectory;
-		var fullPath = Path.GetFullPath(Path.Combine(baseDir, VFSConfigPath));
+		var path = Path.GetFullPath(Path.Combine(_paths.EngineRoot, VFSConfigPath));
+		if (!File.Exists(path))
+            throw new FileNotFoundException("Engine VFS config missing", path);
 
-		// prevent escape from baseDir
-		if (!fullPath.StartsWith(baseDir, StringComparison.OrdinalIgnoreCase))
-			throw new UnauthorizedAccessException($"Attempted to read file outside of engine root: {fullPath}");
-
-		var yamlText = File.ReadAllText(fullPath);
+		var yamlText = File.ReadAllText(path);
 		var config = _yaml.Deserialize<VFSConfig>(yamlText);
 		return config;
+	}
+
+	public EngineContentSource()
+	{
+		IoCManager.ResolveDependencies(this);
 	}
 }

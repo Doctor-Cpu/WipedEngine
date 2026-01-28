@@ -24,7 +24,7 @@ public static class IoCManager
 		if (EngineContainer.TryResolve(type, out val))
 			return true;
 
-		if (ContentContainer.TryResolve(type, out val))
+		if (ContentContainer.TryResolve(type, out val, false))
 			return true;
 
 		return false;
@@ -44,6 +44,11 @@ public static class IoCManager
 	public static T Resolve<T>()
 	{
 		return (T)Resolve(typeof(T));
+	}
+
+	internal static IEnumerable<object> GetAllResolved()
+	{
+		return EngineContainer.GetAllInstances().Concat(ContentContainer.GetAllInstances());
 	}
 
 	public static void ResolveDependencies(object instance)
@@ -70,5 +75,15 @@ public static class IoCManager
 	internal static void AutoBindContent()
 	{
 		ContentContainer.AutoBind();
+	}
+
+	internal static void CreateInstancesEngine()
+	{
+		EngineContainer.CreateInstances();
+	}
+
+	internal static void CreateInstancesContent()
+	{
+		ContentContainer.CreateInstances();
 	}
 }

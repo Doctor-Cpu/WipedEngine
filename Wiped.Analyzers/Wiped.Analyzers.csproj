@@ -4,6 +4,7 @@
 		<TargetFramework>netstandard2.0</TargetFramework>
         <LangVersion>13</LangVersion>
 		<RootNamespace>Wiped.Analyzers</RootNamespace>
+    	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
