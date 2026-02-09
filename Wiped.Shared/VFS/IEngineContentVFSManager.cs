@@ -1,8 +1,9 @@
+using Wiped.Shared.IoC;
 using Wiped.Shared.VFS.Backends;
 
 namespace Wiped.Shared.VFS;
 
-internal interface IEngineContentVFSManager
+internal interface IEngineContentVFSManager : IManager
 {
 	void Mount(IContentBackend backend);
 

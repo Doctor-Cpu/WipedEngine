@@ -1,6 +1,8 @@
+using Wiped.Shared.IoC;
+
 namespace Wiped.Shared.Lifecycle;
 
-internal interface ILifecycleManager
+internal interface ILifecycleManager : IManager
 {
     T Get<T>() where T : notnull;
     object Get(Type type);

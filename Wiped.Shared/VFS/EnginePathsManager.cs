@@ -3,7 +3,7 @@ using Wiped.Shared.IoC;
 namespace Wiped.Shared.VFS;
 
 [AutoBind(typeof(IEnginePathsManager))]
-internal sealed class EnginePathsManager : IManager, IEnginePathsManager
+internal sealed class EnginePathsManager : IEnginePathsManager
 {
     public string ProcessRoot { get; }
     public string EngineRoot { get; }

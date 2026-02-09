@@ -6,7 +6,7 @@ using Wiped.Shared.VFS.Sources;
 namespace Wiped.Shared.VFS;
 
 [AutoBind(typeof(IContentVFSManager), typeof(IEngineContentVFSManager))]
-internal sealed class ContentVFSManager : IManager, IContentVFSManager, IEngineContentVFSManager
+internal sealed class ContentVFSManager : IContentVFSManager, IEngineContentVFSManager
 {
     private readonly Dictionary<ContentPath, IContentBackend> _lookup = [];
 
@@ -41,6 +41,27 @@ internal sealed class ContentVFSManager : IManager, IContentVFSManager, IEngineC
 	public void UnmountAll()
 	{
 		_lookup.Clear();
+	}
+
+	public Stream? GetFile(ContentPath path)
+	{
+		if (!_lookup.TryGetValue(path, out var backend) || !backend.TryOpen(path, out var stream))
+			return null;
+
+		return stream;
+	}
+
+	public Stream GetFileOrThrow(ContentPath path)
+	{
+#if DEBUG
+		if (!_lookup.TryGetValue(path, out var backend) || !backend.TryOpen(path, out var stream))
+			throw new FileNotFoundException($"Tried to find {path} but it does not exist within the VFS");
+
+		return stream;
+#else
+		_lookup[path].TryOpen(path, out var stream);
+		return stream!;
+#endif
 	}
 
 	public bool TryGetFile(ContentPath path, [NotNullWhen(true)] out Stream? file)

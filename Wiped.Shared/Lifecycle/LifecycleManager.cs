@@ -5,7 +5,7 @@ using Wiped.Shared.VFS;
 namespace Wiped.Shared.Lifecycle;
 
 [AutoBind(typeof(ILifecycleManager))]
-internal sealed class LifecycleManager : IManager, ILifecycleManager, IHotReloadable
+internal sealed class LifecycleManager : ILifecycleManager, IHotReloadable
 {
 	[Dependency] private readonly IReflectionManager _reflection = default!;
 

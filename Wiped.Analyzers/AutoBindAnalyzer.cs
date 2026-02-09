@@ -7,26 +7,8 @@ namespace Wiped.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class AutoBindAnalyzer : DiagnosticAnalyzer
 {
-    public static readonly DiagnosticDescriptor MustBeAutoBindable = new(
-        id: "ENG004",
-        title: "IManagers must have the AutoBindAttribute",
-        messageFormat: "Type '{0}' must be marked with [AutoBind]",
-        category: "Engine.Yaml",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true
-    );
-
-    public static readonly DiagnosticDescriptor MustBeIManager = new(
-        id: "ENG005",
-        title: "AutoBind types must implement IManager",
-        messageFormat: "Type '{0}' marked with [AutoBind] must implement IManager",
-        category: "Engine.IoC",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true
-    );
-
 	public static readonly DiagnosticDescriptor MissingAutoBindInterface = new(
-		id: "ENG006",
+		id: "ENG004",
 		title: "AutoBind interface not implemented",
 		messageFormat: "Type '{0}' is marked with [AutoBind] but does not implement interface '{1}'",
 		category: "Engine.IoC",
@@ -34,7 +16,25 @@ public sealed class AutoBindAnalyzer : DiagnosticAnalyzer
 		isEnabledByDefault: true
 	);
 
-	public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [MustBeAutoBindable, MustBeIManager, MissingAutoBindInterface];
+	public static readonly DiagnosticDescriptor AutoBindMissing = new(
+		id: "ENG005",
+		title: "IManager interface specified but no AutoBind attribute",
+		messageFormat: "IManager interface '{1}' specified but no AutoBind attribute on '{0}'",
+		category: "Engine.IoC",
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor AutoBindInterfaceMustBeIManager = new(
+		id: "ENG006",
+		title: "AutoBind interfaces must implement IManager",
+		messageFormat: "Interface '{0}' specified in [AutoBind] must implement IManager",
+		category: "Engine.IoC",
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [MissingAutoBindInterface, AutoBindMissing, AutoBindInterfaceMustBeIManager];
 
 	private const string AutoBindAttributeName = "Wiped.Shared.IoC.AutoBindAttribute";
 	private const string IManagerName = "Wiped.Shared.IoC.IManager";
@@ -60,48 +60,68 @@ public sealed class AutoBindAnalyzer : DiagnosticAnalyzer
         if (autoBindAttribute is null || iManagerInterface is null)
             return; // referenced assembly missing
 
+		var implementationLocation = typeSymbol.Locations.FirstOrDefault() ?? Location.None;
+
    		var hasAutoBind = typeSymbol.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, autoBindAttribute));
-        var implementsIManager = typeSymbol.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, iManagerInterface));
-
-		var location = typeSymbol.Locations.FirstOrDefault() ?? Location.None;
-
-		if (implementsIManager && !hasAutoBind)
-		{
-			context.ReportDiagnostic(Diagnostic.Create(
-				MustBeAutoBindable,
-				location,
-				typeSymbol.Name
-			));
-		}
-
-		if (hasAutoBind && !implementsIManager)
-		{
-			context.ReportDiagnostic(Diagnostic.Create(
-				MustBeIManager,
-				location,
-				typeSymbol.Name
-			));
-		}
-
 		if (!hasAutoBind)
+		{
+			var implementedManagerInterfaces = GetImplementedInterfaces(typeSymbol, i => IsManagerInterface(i, iManagerInterface));
+			if (!implementedManagerInterfaces.Any())
+				return;
+
+			foreach (var iface in implementedManagerInterfaces)
+			{
+				context.ReportDiagnostic(Diagnostic.Create(
+					AutoBindMissing,
+					implementationLocation,
+					typeSymbol.Name,
+					iface.ToDisplayString()
+				));
+			}
+
 			return;
+		}
 
 		var declaredInterfaces = GetInterfacesDeclaredInAutoBind(typeSymbol, autoBindAttribute);
 
 		foreach (var declaredInterface in declaredInterfaces)
 		{
 			var isImplemented = typeSymbol.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, declaredInterface));
+			if (!isImplemented)
+			{
+				context.ReportDiagnostic(Diagnostic.Create(
+					MissingAutoBindInterface,
+					implementationLocation,
+					typeSymbol.Name,
+					declaredInterface.ToDisplayString()
+				));
+			}
 
-			if (isImplemented)
-				continue;
+			var interfaceLocation = declaredInterface.Locations.FirstOrDefault() ?? Location.None;
 
-			context.ReportDiagnostic(Diagnostic.Create(
-				MissingAutoBindInterface,
-				location,
-				typeSymbol.Name,
-				declaredInterface.ToDisplayString()
-			));
+			var interfaceImplementsIManager = IsManagerInterface(declaredInterface, iManagerInterface);
+			if (!interfaceImplementsIManager)
+			{
+				context.ReportDiagnostic(Diagnostic.Create(
+					AutoBindInterfaceMustBeIManager,
+					interfaceLocation,
+					declaredInterface.ToDisplayString()
+				));
+			}
 		}
+	}
+
+	private static bool IsManagerInterface(INamedTypeSymbol iface, INamedTypeSymbol iManager)
+	{
+		if (SymbolEqualityComparer.Default.Equals(iface, iManager))
+			return true;
+
+		return iface.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, iManager));
+	}
+
+	private static ImmutableArray<INamedTypeSymbol> GetImplementedInterfaces(INamedTypeSymbol typeSymbol, Func<INamedTypeSymbol, bool> func)
+	{
+		return [.. typeSymbol.AllInterfaces.Where(i => func(i))];
 	}
 
 	private static ImmutableArray<INamedTypeSymbol> GetInterfacesDeclaredInAutoBind(INamedTypeSymbol typeSymbol, INamedTypeSymbol autoBindAttribute)

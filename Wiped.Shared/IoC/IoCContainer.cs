@@ -20,8 +20,8 @@ public sealed class IoCContainer
 		if (!interfaceType.IsAssignableFrom(implType))
 			throw new InvalidOperationException($"{implType.FullName} does not implement {interfaceType.FullName}");
 
-		if (!typeof(IManager).IsAssignableFrom(implType))
-			throw new InvalidOperationException($"{implType.FullName} must implement IManager");
+		if (!typeof(IManager).IsAssignableFrom(interfaceType))
+			throw new InvalidOperationException($"{interfaceType.FullName} must implement IManager");
 
 		_bindings[interfaceType] = implType;
 	}

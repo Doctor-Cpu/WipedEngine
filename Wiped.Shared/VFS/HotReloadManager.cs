@@ -1,11 +1,13 @@
+using System.Runtime.CompilerServices;
 using System.Text;
 using Wiped.Shared.IoC;
 using Wiped.Shared.Lifecycle;
+using DependencyAttribute = Wiped.Shared.IoC.DependencyAttribute;
 
 namespace Wiped.Shared.VFS;
 
 [AutoBind(typeof(IHotReloadManager))]
-internal sealed class HotReloadManager : IManager, IHotReloadManager
+internal sealed class HotReloadManager : IHotReloadManager
 {
 	[Dependency] private readonly ILifecycleManager _lifeCycle = default!;
 
@@ -19,7 +21,7 @@ internal sealed class HotReloadManager : IManager, IHotReloadManager
 	public void Shutdown()
 	{
 		var ordered = GetSortedTypes();
-		for (var i = ordered.Count - 1; i <= 0; i--) //shutdown in reverse order
+		for (var i = ordered.Count - 1; i >= 0; i--) //shutdown in reverse order
 			ordered[i].Shutdown();
 	}
 
@@ -39,30 +41,33 @@ internal sealed class HotReloadManager : IManager, IHotReloadManager
 		foreach (var system in systems)
 		{
 			var type = system.GetType();
+
 			byType[type] = system;
 			edges[type] = [];
 			indegrees[type] = 0;
 		}
 
-		foreach (var system in systems)
+		foreach (var (from, system) in byType)
 		{
-			var from = system.GetType();
-
 			foreach (var after in system.After)
 			{
-				if (!byType.ContainsKey(after))
-					throw new InvalidOperationException($"{from.Name} depends on {after.Name}, which is not registered");
+				var registeredAfter = GetRegisteredType(after);
 
-				if (edges[after].Add(from))
+				if (!byType.ContainsKey(registeredAfter))
+					throw new InvalidOperationException($"{from.Name} depends on {registeredAfter.Name}, which is not registered");
+
+				if (edges[registeredAfter].Add(from))
 					indegrees[from]++;
 			}
 
 			foreach (var before in system.Before)
 			{
-				if (!byType.ContainsKey(before))
-					throw new InvalidOperationException($"{from.Name} must run before {before.Name}, which is not registered");
+				var registeredBefore = GetRegisteredType(before);
 
-				if (edges[from].Add(before))
+				if (!byType.ContainsKey(registeredBefore))
+					throw new InvalidOperationException($"{from.Name} must run before {registeredBefore.Name}, which is not registered");
+
+				if (edges[from].Add(registeredBefore))
 					indegrees[before]++;
 			}
 		}
@@ -104,5 +109,16 @@ internal sealed class HotReloadManager : IManager, IHotReloadManager
 #endif
 
 		return ordered;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static Type GetRegisteredType(Type baseType)
+	{
+		// special case for managers
+		// otherwise youd have to specify every implementation from every namespace which is impossible for shared and client/server managers
+		if (typeof(IManager).IsAssignableFrom(baseType))
+			return IoCManager.Resolve(baseType).GetType();
+
+		return baseType;
 	}
 }
