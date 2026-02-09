@@ -12,9 +12,25 @@ internal sealed class HelpTool : BaseCliTool
 
 	protected override int Run(string[] args)
 	{
-		foreach (var program in _programs.GetAll())
-			PrintText($"{program.ToolName} - {program.ToolDesc}");
+		if (!args.Any())
+		{
+			foreach (var program in _programs.GetAll())
+				PrintProgramHelp(program);
+
+			return ToolExitCodes.Success;
+		}
+
+		foreach (var arg in args)
+		{
+			if (_programs.TryGet(arg, out var program))
+				PrintProgramHelp(program);
+		}
 
 		return ToolExitCodes.Success;
+	}
+
+	private void PrintProgramHelp(BaseTool program)
+	{
+		PrintText($"{program.ToolName} - {program.ToolDesc}");
 	}
 }
