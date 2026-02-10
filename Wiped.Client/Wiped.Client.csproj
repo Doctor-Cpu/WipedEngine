@@ -12,6 +12,7 @@
 
   	<ItemGroup>
     	<ProjectReference Include="..\Wiped.Shared\Wiped.Shared.csproj" />
+    	<ProjectReference Include="..\Wiped.Localisation\Wiped.Localisation.csproj" />
   	</ItemGroup>
 
 </Project>

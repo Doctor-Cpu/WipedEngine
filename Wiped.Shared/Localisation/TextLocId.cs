@@ -19,7 +19,7 @@ public readonly record struct TextLocId(string Id) : IEquatable<string>, ICompar
 
     public bool Equals(string? other)
     {
-        return Id == other;
+		return string.Equals(Id, other, StringComparison.OrdinalIgnoreCase);
     }
 
     public int CompareTo(TextLocId other)
@@ -27,5 +27,5 @@ public readonly record struct TextLocId(string Id) : IEquatable<string>, ICompar
         return string.Compare(Id, other.Id, StringComparison.OrdinalIgnoreCase);
     }
 
-    public override string ToString() => Id ?? throw new InvalidOperationException("LocId is uninitialized");
+    public override string ToString() => Id;
 }

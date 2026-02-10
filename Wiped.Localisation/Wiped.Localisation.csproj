@@ -2,17 +2,14 @@
 
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
-    	<RootNamespace>Wiped.Tools</RootNamespace>
-		<OutputPath>..\..\bin\Wiped.Tools\</OutputPath>
+		<RootNamespace>Wiped.Localisation</RootNamespace>
     	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-		<OutputType>Exe</OutputType>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
   	</PropertyGroup>
-  	
-	<ItemGroup>
+
+  	<ItemGroup>
     	<ProjectReference Include="..\Wiped.Shared\Wiped.Shared.csproj" />
-    	<ProjectReference Include="..\Wiped.Localisation\Wiped.Localisation.csproj" />
-	</ItemGroup>
+  	</ItemGroup>
 
 </Project>

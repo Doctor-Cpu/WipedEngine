@@ -9,17 +9,9 @@
   	</PropertyGroup>
 
 	<ItemGroup>
-	  	<PackageReference Include="YamlDotNet" Version="16.3.0"/>
-	</ItemGroup>
+  		<ProjectReference Include="..\Wiped.Analyzers\Wiped.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 
-	<ItemGroup>
-  		<ProjectReference Include="..\Wiped.Analyzers\Wiped.Analyzers.csproj"
-			OutputItemType="Analyzer"
-            ReferenceOutputAssembly="false" />
-
-  		<ProjectReference Include="..\Wiped.Generators\Wiped.Generators.csproj"
-			OutputItemType="Analyzer"
-            ReferenceOutputAssembly="false" />
+  		<ProjectReference Include="..\Wiped.Generators\Wiped.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
 </Project>
