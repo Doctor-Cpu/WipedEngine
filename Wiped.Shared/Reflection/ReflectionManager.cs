@@ -1,26 +1,23 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Wiped.Shared.Assemblies;
 using Wiped.Shared.IoC;
 using Wiped.Shared.VFS;
 
 namespace Wiped.Shared.Reflection;
 
-[AutoBind(typeof(IReflectionManager))]
-internal sealed class ReflectionManager : IReflectionManager, IHotReloadable
+[AutoBind(typeof(IReflectionManager), typeof(IEngineReflectionManager))]
+internal sealed class ReflectionManager : IReflectionManager, IEngineReflectionManager, IHotReloadable
 {
-	private readonly List<Assembly> _assemblies = [];
+	[Dependency] private readonly IAssemblyManager _assemblies = default!;
+
     private readonly Dictionary<Type, List<Type>> _derivedTypeCache = [];
 	private readonly Dictionary<Type, List<(Type, Attribute)>> _attributeTypeCache = [];
 
-	private const BindingFlags MemberAttributeFlags = BindingFlags.Instance | BindingFlags.Public;
-
-	public void Initialize()
-	{
-		_assemblies.AddRange(AppDomain.CurrentDomain.GetAssemblies());
-	}
+	private const BindingFlags MemberAttributeFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
 
 	public void Shutdown()
 	{
-		_assemblies.Clear();
 		_derivedTypeCache.Clear();
 		_attributeTypeCache.Clear();
 	}
@@ -101,13 +98,25 @@ internal sealed class ReflectionManager : IReflectionManager, IHotReloadable
             };
 
             if (memberType != null)
-                yield return new IReflectionManager.MemberAttributeInfo<TAttribute>(member.Name, memberType, attr);
+                yield return new IReflectionManager.MemberAttributeInfo<TAttribute>(member.Name, member, memberType, attr);
 		}
+	}
+
+	public bool TryGetStaticValue<T>(MemberInfo member, [NotNullWhen(true)] out T? value) where T : class
+	{
+		value = member switch
+		{
+			FieldInfo f when f.IsStatic => f.GetValue(null) as T,
+			PropertyInfo p when p.GetMethod?.IsStatic == true => p.GetValue(null) as T,
+			_ => null
+		};
+
+		return value != null;
 	}
 
 	private IEnumerable<Type> GetTypes()
 	{
-		foreach (var asm in _assemblies)
+		foreach (var asm in _assemblies.GetAssemblies())
 		{
 			foreach (var type in SafeGetTypes(asm))
 			{
