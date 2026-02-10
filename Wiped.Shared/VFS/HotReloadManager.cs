@@ -25,6 +25,16 @@ internal sealed class HotReloadManager : IHotReloadManager
 			ordered[i].Shutdown();
 	}
 
+	public void Reload()
+	{
+		var ordered = GetSortedTypes();
+		foreach (var system in ordered)
+			system.Initialize();
+
+		for (var i = ordered.Count - 1; i >= 0; i--)
+			ordered[i].Shutdown();
+	}
+
 	private List<IHotReloadable> GetSortedTypes()
 	{
 		var systems = _lifeCycle.GetAll<IHotReloadable>().ToList();

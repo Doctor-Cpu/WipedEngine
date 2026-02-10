@@ -7,4 +7,6 @@ internal interface IHotReloadManager : IManager
 	void Initialize();
 
 	void Shutdown();
+
+	void Reload();
 }
