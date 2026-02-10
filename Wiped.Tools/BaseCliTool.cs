@@ -25,7 +25,7 @@ internal abstract class BaseCliTool : BaseTool
 		_output.WriteLine(text);
 	}
 
-	internal BaseCliTool(TextWriter? output = null)
+	internal BaseCliTool(TextWriter? output = null) : base()
 	{
 		_output = output ?? Console.Out;
 	}
