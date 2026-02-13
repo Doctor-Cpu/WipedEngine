@@ -1,13 +1,13 @@
-using Wiped.Localisation;
+using Wiped.Localization;
 using Wiped.Shared.IoC;
-using Wiped.Shared.Localisation;
+using Wiped.Shared.Localization;
 
 namespace Wiped.Tools;
 
 internal sealed class HelpTool : BaseCliTool
 {
 	[Dependency] private readonly IProgramManager _programs = default!;
-	[Dependency] private readonly ITextLocalisationManager _textLocalisation = default!;
+	[Dependency] private readonly ITextLocalizationManager _textLocalization = default!;
 
 	public override string ToolName => "help";
 	public override TextLocId? ToolDesc => "tool-help-desc";
@@ -35,7 +35,7 @@ internal sealed class HelpTool : BaseCliTool
 
 	private void PrintProgramHelp(BaseTool program)
 	{
-		var text = _textLocalisation.GetString(ProgramHelpText, ("name", program.ToolName), ("desc", program.ToolDesc));
+		var text = _textLocalization.GetString(ProgramHelpText, ("name", program.ToolName), ("desc", program.ToolDesc));
 		PrintText($"{program.ToolName} - {program.ToolDesc}");
 	}
 }

@@ -1,9 +1,9 @@
 using System.Globalization;
 using Wiped.Shared.CVars;
 
-namespace Wiped.Localisation.CVars;
+namespace Wiped.Localization.CVars;
 
-internal sealed partial class LocalisationEngineCVars : BaseEngineCVarModule
+internal sealed partial class LocalizationEngineCVars : BaseEngineCVarModule
 {
 	[CVarDef]
 	public static readonly CVar<CultureInfo> Locale = Define("locale", CultureInfo.CurrentCulture);

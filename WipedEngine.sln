@@ -15,7 +15,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wiped.Server", "Wiped.Serve
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wiped.Tools", "Wiped.Tools\Wiped.Tools.csproj", "{194E8814-B642-4FB6-8BCF-CB3871DD3A69}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wiped.Localisation", "Wiped.Localisation\Wiped.Localisation.csproj", "{76037B4F-611C-4D6C-A8AB-8E1CBA3BD188}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wiped.Localization", "Wiped.Localization\Wiped.Localization.csproj", "{76037B4F-611C-4D6C-A8AB-8E1CBA3BD188}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

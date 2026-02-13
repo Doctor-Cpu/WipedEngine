@@ -1,4 +1,4 @@
-using Wiped.Shared.Localisation;
+using Wiped.Shared.Localization;
 
 namespace Wiped.Shared.CVars;
 

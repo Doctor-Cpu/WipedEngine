@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Wiped.Shared.Localisation;
+namespace Wiped.Shared.Localization;
 
 public readonly record struct TextLoc(TextLocId Id, params TextLocParam[] Params) : IEquatable<TextLocId>, IComparable<TextLocId>
 {

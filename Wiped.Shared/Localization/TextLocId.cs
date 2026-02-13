@@ -1,4 +1,4 @@
-namespace Wiped.Shared.Localisation;
+namespace Wiped.Shared.Localization;
 
 public readonly record struct TextLocId(string Id) : IEquatable<string>, IComparable<TextLocId>
 {
