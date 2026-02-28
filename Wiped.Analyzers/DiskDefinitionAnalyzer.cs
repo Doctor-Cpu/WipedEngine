@@ -1,42 +1,41 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
+using Wiped.Roslyn;
 
 namespace Wiped.Analyzers;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
+public sealed class DiskDefinitionAnalyzer : DiagnosticAnalyzer
 {
     public static readonly DiagnosticDescriptor MustBeSealed = new(
         id: "ENG001",
-        title: "DataDefinition must be sealed",
-        messageFormat: "Type '{0}' marked with [DataDefinition] must be sealed",
-        category: "Engine.Data",
+        title: "DiskDefinition must be sealed",
+        messageFormat: "Type '{0}' marked with [DiskDefinition] must be sealed",
+        category: "Engine.Disk",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true
     );
 
     public static readonly DiagnosticDescriptor ParameterlessCtorRequired = new(
         id: "ENG002",
-        title: "DataDefinition must have a parameterless constructor",
-        messageFormat: "Type '{0}' marked with [DataDefinition] must have a public parameterless constructor",
-        category: "Engine.Data",
+        title: "DiskDefinition must have a parameterless constructor",
+        messageFormat: "Type '{0}' marked with [DiskDefinition] must have a public parameterless constructor",
+        category: "Engine.Disk",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true
     );
 
     public static readonly DiagnosticDescriptor AbstractTypeNotAllowed = new(
         id: "ENG003",
-        title: "DataDefinition cannot be abstract",
-        messageFormat: "Type '{0}' marked with [DataDefinition] cannot be abstract",
-        category: "Engine.Data",
+        title: "DiskDefinition cannot be abstract",
+        messageFormat: "Type '{0}' marked with [DiskDefinition] cannot be abstract",
+        category: "Engine.Disk",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true
     );
 
 	public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [MustBeSealed, ParameterlessCtorRequired, AbstractTypeNotAllowed];
-
-	private const string DataDefinitionAttributeName = "Wiped.Shared.Serialization.DataDefinitionAttribute";
 
 	public override void Initialize(AnalysisContext context)
 	{
@@ -45,32 +44,27 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
 
 		context.RegisterCompilationStartAction(startContext =>
 		{
-			var dataDefAttr = startContext.Compilation
-				.GetTypeByMetadataName(DataDefinitionAttributeName);
+			var diskDefAttr = startContext.Compilation
+				.GetTypeByMetadataName(DiskDefinitionAttribute);
 
-			if (dataDefAttr == null)
+			if (diskDefAttr == null)
 				return;
 
 			startContext.RegisterSymbolAction(
-				ctx => AnalyzeType(ctx, dataDefAttr),
+				ctx => AnalyzeType(ctx, diskDefAttr),
 				SymbolKind.NamedType
 			);
 		});
 	}
 
-	private static void AnalyzeType(SymbolAnalysisContext context, INamedTypeSymbol dataDefinitionAttribute)
+	private static void AnalyzeType(SymbolAnalysisContext context, INamedTypeSymbol diskDefinitionAttribute)
 	{
 		var type = (INamedTypeSymbol)context.Symbol;
 
 		if (type.TypeKind != TypeKind.Class)
 			return;
 
-		var hasAttr = type.GetAttributes().Any(a =>
-			SymbolEqualityComparer.Default.Equals(
-				a.AttributeClass,
-				dataDefinitionAttribute));
-
-		if (!hasAttr)
+		if (!type.HasAttribute(diskDefinitionAttribute))
 			return;
 
 		var location = type.Locations.FirstOrDefault() ?? Location.None;
