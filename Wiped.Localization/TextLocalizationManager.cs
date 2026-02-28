@@ -9,7 +9,8 @@ namespace Wiped.Localization;
 [AutoBind(typeof(ITextLocalizationManager))]
 internal sealed class TextLocalizationManager : ITextLocalizationManager, IHotReloadable
 {
-	[Dependency] private readonly ICVarManager _cvar = default!;
+	[Dependency] private readonly IoCDynamic<ICVarManager> _cvar = default!;
+	[Dependency] private readonly IoCDynamic<IContentVFSManager> _vfs = default!;
 
 	public Type[] After = [typeof(ICVarManager)];
 
@@ -22,12 +23,16 @@ internal sealed class TextLocalizationManager : ITextLocalizationManager, IHotRe
 	{
 	}
 
-	private void SetBundler()
+	private void SetBundler(CultureInfo? local = null)
 	{
-		var local = _cvar.GetValue(LocalizationEngineCVars.Locale);
+		local ??= _cvar.Value.GetValue(LocalizationEngineCVars.Locale);
 
-		var builder = LinguiniBuilder.Builder();
-		builder.CultureInfo(local);
+		var builder = LinguiniBuilder.Builder()
+		.CultureInfo(local);
+
+		foreach (var path in _vfs.Value.Enumerate(SharedTextLocalizationHelpers.TextPath))
+		{
+		}
 	}
 
 	public string GetString(TextLoc loc)

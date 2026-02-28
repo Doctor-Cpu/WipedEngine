@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
@@ -6,12 +6,22 @@
     	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+
+		<!-- so debugging the output isnt a pain -->
+		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+		<CompilerGeneratedFilesOutputPath>../../obj/Wiped.Shared/Generated</CompilerGeneratedFilesOutputPath>
   	</PropertyGroup>
 
 	<ItemGroup>
-  		<ProjectReference Include="..\Wiped.Analyzers\Wiped.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference
+   			Include="../Wiped.Analyzers/Wiped.Analyzers.csproj"
+   			OutputItemType="Analyzer"
+			ReferenceOutputAssembly="false"/>
 
-  		<ProjectReference Include="..\Wiped.Generators\Wiped.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference
+   			Include="../Wiped.Generators/Wiped.Generators.csproj"
+			OutputItemType="Analyzer"
+			ReferenceOutputAssembly="false"/>
 	</ItemGroup>
 
 </Project>

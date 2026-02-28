@@ -7,14 +7,11 @@ namespace Wiped.Shared.Lifecycle;
 [AutoBind(typeof(ILifecycleManager))]
 internal sealed class LifecycleManager : ILifecycleManager, IHotReloadable
 {
-	[Dependency] private readonly IReflectionManager _reflection = default!;
+	[Dependency] private readonly IoCDynamic<IReflectionManager> _reflection = default!;
 
 	private readonly Dictionary<Type, object> _instances = [];
 
-	public void Shutdown()
-	{
-		_instances.Clear();
-	}
+	public void Shutdown() => _instances.Clear();
 
 	public T Get<T>() where T: notnull
 		=> (T)Get(typeof(T));
@@ -31,10 +28,7 @@ internal sealed class LifecycleManager : ILifecycleManager, IHotReloadable
 
 		// prefer ioc
 		if (IoCManager.TryResolve(type, out var resolved))
-		{
-			_instances[type] = resolved;
-			return resolved;
-		}
+			return resolved.Value; // purposefully never cache because of hotswapping
 
 		var instance = Activator.CreateInstance(type)
 			?? throw new InvalidOperationException($"Failed to create {type.FullName}");
@@ -51,14 +45,11 @@ internal sealed class LifecycleManager : ILifecycleManager, IHotReloadable
 		foreach (var instance in IoCManager.GetAllResolved())
 		{
 			if (instance is T t)
-			{
-				_instances[instance.GetType()] = instance;
 				yield return t;
-			}
 		}
 
 		// life cycle owned
-		var types = _reflection.GetAllDerivedTypes<T>();
+		var types = _reflection.Value.GetAllDerivedTypes<T>();
 		foreach (var type in types)
 		{
 			// already handled

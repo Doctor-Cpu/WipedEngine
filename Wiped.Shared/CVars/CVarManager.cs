@@ -8,9 +8,9 @@ namespace Wiped.Shared.CVars;
 [AutoBind(typeof(ICVarManager))]
 internal sealed class CVarManager : ICVarManager, IHotReloadable
 {
-	[Dependency] private readonly ILifecycleManager _lifecycle = default!;
-	[Dependency] private readonly IReflectionManager _reflection = default!;
-	[Dependency] private readonly IEngineReflectionManager _engineReflection = default!;
+	[Dependency] private readonly IoCDynamic<ILifecycleManager> _lifecycle = default!;
+	[Dependency] private readonly IoCDynamic<IReflectionManager> _reflection = default!;
+	[Dependency] private readonly IoCDynamic<IEngineReflectionManager> _engineReflection = default!;
 
 	public Type[] After => [typeof(ILifecycleManager)];
 
@@ -19,12 +19,12 @@ internal sealed class CVarManager : ICVarManager, IHotReloadable
 
 	public void Initialize()
 	{
-		foreach (var module in _lifecycle.GetAll<BaseCVarModule>())
+		foreach (var module in _lifecycle.Value.GetAll<BaseCVarModule>())
 		{
 			var moduleType = module.GetType();
-			foreach (var cVarInfo in _reflection.GetMemberAttributes<CVarDefAttribute>(moduleType))
+			foreach (var cVarInfo in _reflection.Value.GetMemberAttributes<CVarDefAttribute>(moduleType))
 			{
-				if (_engineReflection.TryGetStaticValue<ICVar>(cVarInfo.Member, out var cVar))
+				if (_engineReflection.Value.TryGetStaticValue<ICVar>(cVarInfo.Member, out var cVar))
 					Register(cVar);
 				else
 					throw new InvalidOperationException($"Found CVar definition {cVarInfo.Name} in {moduleType} yet could not fetch its value");

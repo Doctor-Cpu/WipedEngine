@@ -9,7 +9,7 @@ namespace Wiped.Shared.VFS;
 [AutoBind(typeof(IHotReloadManager))]
 internal sealed class HotReloadManager : IHotReloadManager
 {
-	[Dependency] private readonly ILifecycleManager _lifeCycle = default!;
+	[Dependency] private readonly IoCDynamic<ILifecycleManager> _lifeCycle = default!;
 
 	public void Initialize()
 	{
@@ -27,6 +27,8 @@ internal sealed class HotReloadManager : IHotReloadManager
 
 	public void Reload()
 	{
+		// just initialize and shutdown merged into one
+		// saves calculating the sorting twice
 		var ordered = GetSortedTypes();
 		foreach (var system in ordered)
 			system.Initialize();
@@ -37,7 +39,7 @@ internal sealed class HotReloadManager : IHotReloadManager
 
 	private List<IHotReloadable> GetSortedTypes()
 	{
-		var systems = _lifeCycle.GetAll<IHotReloadable>().ToList();
+		var systems = _lifeCycle.Value.GetAll<IHotReloadable>().ToList();
 		return TopologicalSort(systems);
 	}
 
@@ -47,14 +49,14 @@ internal sealed class HotReloadManager : IHotReloadManager
 
 		Dictionary<Type, IHotReloadable> byType = new(systems.Count);
 		Dictionary<Type, HashSet<Type>> edges = new(systems.Count);
-		Dictionary<Type, int> indegrees = new (systems.Count);
+		Dictionary<Type, int> indegree = new (systems.Count);
 		foreach (var system in systems)
 		{
 			var type = system.GetType();
 
 			byType[type] = system;
 			edges[type] = [];
-			indegrees[type] = 0;
+			indegree[type] = 0;
 		}
 
 		foreach (var (from, system) in byType)
@@ -63,30 +65,30 @@ internal sealed class HotReloadManager : IHotReloadManager
 			{
 				var registeredAfter = GetRegisteredType(after);
 
-				if (!byType.ContainsKey(registeredAfter))
+				if (!byType.ContainsKey(registeredAfter) && registeredAfter is not IManager)
 					throw new InvalidOperationException($"{from.Name} depends on {registeredAfter.Name}, which is not registered");
 
 				if (edges[registeredAfter].Add(from))
-					indegrees[from]++;
+					indegree[from]++;
 			}
 
 			foreach (var before in system.Before)
 			{
 				var registeredBefore = GetRegisteredType(before);
 
-				if (!byType.ContainsKey(registeredBefore))
+				if (!byType.ContainsKey(registeredBefore) && registeredBefore is not IManager)
 					throw new InvalidOperationException($"{from.Name} must run before {registeredBefore.Name}, which is not registered");
 
 				if (edges[from].Add(registeredBefore))
-					indegrees[before]++;
+					indegree[before]++;
 			}
 		}
 
 		List<IHotReloadable> ordered = new(systems.Count);
-		Queue<Type> queue = new(indegrees.Count);
-		foreach (var (type, indegree) in indegrees)
+		Queue<Type> queue = new(indegree.Count);
+		foreach (var (type, degree) in indegree)
 		{
-			if (indegree != 0)
+			if (degree != 0)
 				continue;
 
 			queue.Enqueue(type);
@@ -98,8 +100,8 @@ internal sealed class HotReloadManager : IHotReloadManager
 
 			foreach (var next in edges[type])
 			{
-				indegrees[next]--;
-				if (indegrees[next] == 0)
+				indegree[next]--;
+				if (indegree[next] == 0)
 					queue.Enqueue(next);
 			}
 		}
@@ -108,9 +110,9 @@ internal sealed class HotReloadManager : IHotReloadManager
 		if (ordered.Count != systems.Count)
 		{
 			var message = new StringBuilder("HotReload dependency cycle detected:");
-			foreach (var (type, indegree) in indegrees)
+			foreach (var (type, degree) in indegree)
 			{
-				if (indegree > 0)
+				if (degree > 0)
 					message.AppendLine(type.FullName);
 			}
 
@@ -125,9 +127,13 @@ internal sealed class HotReloadManager : IHotReloadManager
 	private static Type GetRegisteredType(Type baseType)
 	{
 		// special case for managers
-		// otherwise youd have to specify every implementation from every namespace which is impossible for shared and client/server managers
+		// otherwise youd have to specify every implementation from every namespace
+		// which is impossible when a shared manager depends on a manager with specific client/server/tools implementations
 		if (typeof(IManager).IsAssignableFrom(baseType))
-			return IoCManager.Resolve(baseType).GetType();
+		{
+			var dynamic = IoCManager.Resolve(baseType);
+			return dynamic.ManagerType;
+		}
 
 		return baseType;
 	}

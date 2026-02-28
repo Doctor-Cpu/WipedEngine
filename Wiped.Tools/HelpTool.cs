@@ -4,38 +4,36 @@ using Wiped.Shared.Localization;
 
 namespace Wiped.Tools;
 
-internal sealed class HelpTool : BaseCliTool
+public sealed class HelpTool : BaseCliTool
 {
-	[Dependency] private readonly IProgramManager _programs = default!;
-	[Dependency] private readonly ITextLocalizationManager _textLocalization = default!;
+	[Dependency] private readonly IoCDynamic<IEngineProgramManager> _programs = default!;
+	[Dependency] private readonly IoCDynamic<ITextLocalizationManager> _textLocalization = default!;
 
 	public override string ToolName => "help";
 	public override TextLocId? ToolDesc => "tool-help-desc";
 
 	private static readonly TextLocId ProgramHelpText = "tool-help-program-help";
 
-	protected override int Run(string[] args)
+	protected override void Run(string[] args)
 	{
 		if (!args.Any())
 		{
-			foreach (var program in _programs.GetAll())
+			foreach (var program in _programs.Value.GetAll())
 				PrintProgramHelp(program);
 
-			return ToolExitCodes.Success;
+			return;
 		}
 
 		foreach (var arg in args)
 		{
-			if (_programs.TryGet(arg, out var program))
+			if (_programs.Value.TryGet(arg, out var program))
 				PrintProgramHelp(program);
 		}
-
-		return ToolExitCodes.Success;
 	}
 
 	private void PrintProgramHelp(BaseTool program)
 	{
-		var text = _textLocalization.GetString(ProgramHelpText, ("name", program.ToolName), ("desc", program.ToolDesc));
-		PrintText($"{program.ToolName} - {program.ToolDesc}");
+		var text = _textLocalization.Value.GetString(ProgramHelpText, ("name", program.ToolName), ("desc", program.ToolDesc));
+		PrintText(text);
 	}
 }

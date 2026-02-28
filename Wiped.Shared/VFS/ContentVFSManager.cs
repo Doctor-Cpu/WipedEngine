@@ -1,105 +1,91 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Wiped.Shared.IoC;
-using Wiped.Shared.VFS.Backends;
-using Wiped.Shared.VFS.Sources;
 
 namespace Wiped.Shared.VFS;
 
 [AutoBind(typeof(IContentVFSManager), typeof(IEngineContentVFSManager))]
 internal sealed class ContentVFSManager : IContentVFSManager, IEngineContentVFSManager
 {
-    private readonly Dictionary<ContentPath, IContentBackend> _lookup = [];
+	private string _root = default!;
+	private bool _initialized;
 
-	public void Bootstrap()
+	public void Bootstrap(string root)
 	{
-		var bootstrapSource = new EngineContentSource();
-		var bootstrapConfig = bootstrapSource.GetConfig();
-		Load(bootstrapConfig);
-	}
-	
-	public void Load(VFSConfig config)
-	{
-		UnmountAll();
+		if (_initialized)
+			throw new InvalidOperationException("VFS already bootstrapped");
 
-		foreach (var backend in config.Backends)
-			Mount(backend);
-	}
+		if (string.IsNullOrWhiteSpace(root))
+			throw new InvalidOperationException($"ContentRoot not provided");
 
-	public void Mount(IContentBackend backend)
-	{
-		backend.Validate();
+		_root = Path.GetFullPath(root);
 
-		foreach (var path in backend.Enumerate(true))
-		{
-			if (_lookup.ContainsKey(path))
-                throw new InvalidOperationException($"Duplicate content path {path}");
+		if (!Directory.Exists(_root))
+			throw new DirectoryNotFoundException(_root);
 
-			_lookup[path] = backend;
-		}
+		_initialized = true;
 	}
 
-	public void UnmountAll()
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void EnsureInitialized()
+    {
+        if (!_initialized)
+            throw new InvalidOperationException("VFS not bootstrapped.");
+    }
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private string Resolve(ContentPath path)
 	{
-		_lookup.Clear();
+		EnsureInitialized();
+		return Path.Combine(_root, path.ToString());
 	}
 
 	public Stream? GetFile(ContentPath path)
 	{
-		if (!_lookup.TryGetValue(path, out var backend) || !backend.TryOpen(path, out var stream))
-			return null;
-
-		return stream;
+		var full = Resolve(path);
+		return File.Exists(full) ? File.OpenRead(full) : null;
 	}
 
 	public Stream GetFileOrThrow(ContentPath path)
 	{
-#if DEBUG
-		if (!_lookup.TryGetValue(path, out var backend) || !backend.TryOpen(path, out var stream))
-			throw new FileNotFoundException($"Tried to find {path} but it does not exist within the VFS");
+		var full = Resolve(path);
+		if (!File.Exists(full))
+			throw new FileNotFoundException($"{path}");
 
-		return stream;
-#else
-		_lookup[path].TryOpen(path, out var stream);
-		return stream!;
-#endif
+		return File.OpenRead(full);
 	}
 
 	public bool TryGetFile(ContentPath path, [NotNullWhen(true)] out Stream? file)
 	{
-		if (!_lookup.TryGetValue(path, out var backend))
+		var full = Resolve(path);
+		if (!File.Exists(full))
 		{
 			file = null;
 			return false;
 		}
-
-		return backend.TryOpen(path, out file);
+		
+		file = File.OpenRead(full);
+		return true;
 	}
 
 	public async Task StreamFileAsync(ContentPath path, Func<Stream, Task> consumer)
 	{
-		if (!TryGetFile(path, out var stream))
-			throw new FileNotFoundException(path.ToString());
-
-		await using (stream)
-			await consumer(stream);
+        await using var stream = GetFileOrThrow(path);
+        await consumer(stream);
 	}
 
     public IEnumerable<ContentPath> Enumerate(ContentPath folderPath, bool recursive = false)
 	{
-		foreach (var path in _lookup.Keys)
-		{
-			if (recursive)
-			{
-				if (!path.IsDescendentOf(folderPath))
-					continue;
-			}
-			else
-			{
-				if (!path.IsDirectChildOf(folderPath))
-					continue;
-			}
+		var full = Resolve(folderPath);
+		if (!Directory.Exists(full))
+			yield break;
 
-			yield return path;
+		var option = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+
+		foreach (var file in Directory.EnumerateFiles(full, "*", option))
+		{
+			var relative = Path.GetRelativePath(_root, file);
+			yield return new ContentPath(relative);
 		}
 	}
 }

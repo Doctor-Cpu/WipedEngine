@@ -1,4 +1,3 @@
-using System.Globalization;
 using Wiped.Shared.CVars;
 
 namespace Wiped.Localization.CVars;

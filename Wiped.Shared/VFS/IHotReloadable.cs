@@ -1,5 +1,8 @@
+using Wiped.Shared.Reflection;
+
 namespace Wiped.Shared.VFS;
 
+[Reflectable]
 public interface IHotReloadable
 {
 	Type[] Before => [];
@@ -8,7 +11,7 @@ public interface IHotReloadable
 	void Initialize()
 	{
 	}
-	
+
 	void Shutdown()
 	{
 	}

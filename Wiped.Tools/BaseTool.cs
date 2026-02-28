@@ -1,17 +1,13 @@
-using Wiped.Shared.IoC;
 using Wiped.Shared.Localization;
+using Wiped.Shared.Reflection;
 
 namespace Wiped.Tools;
 
-internal abstract class BaseTool
+[Reflectable]
+public abstract class BaseTool
 {
 	public abstract string ToolName { get; }
 	public abstract TextLocId? ToolDesc { get; }
 
-	public abstract int Start(string[] args);
-
-	internal BaseTool()
-	{
-		IoCManager.ResolveDependencies(this);
-	}
+	public abstract void Start(string[] args);
 }

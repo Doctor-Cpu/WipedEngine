@@ -1,5 +1,4 @@
 using Wiped.Shared.IoC;
-using Wiped.Shared.Localization;
 
 namespace Wiped.Localization;
 

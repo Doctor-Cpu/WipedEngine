@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using Wiped.Shared.Assemblies;
 using Wiped.Shared.IoC;
 using Wiped.Shared.VFS;
 
@@ -9,8 +8,6 @@ namespace Wiped.Shared.Reflection;
 [AutoBind(typeof(IReflectionManager), typeof(IEngineReflectionManager))]
 internal sealed class ReflectionManager : IReflectionManager, IEngineReflectionManager, IHotReloadable
 {
-	[Dependency] private readonly IAssemblyManager _assemblies = default!;
-
     private readonly Dictionary<Type, List<Type>> _derivedTypeCache = [];
 	private readonly Dictionary<Type, List<(Type, Attribute)>> _attributeTypeCache = [];
 
@@ -25,6 +22,8 @@ internal sealed class ReflectionManager : IReflectionManager, IEngineReflectionM
 	public IEnumerable<Type> GetAllDerivedTypes<TBase>()
 	{
 		var baseType = typeof(TBase);
+		if (baseType.GetCustomAttribute<ReflectableAttribute>() is not { } )
+			throw new InvalidOperationException($"{baseType} must have the [Reflectable] attribute in order to get derived types");
 
 		if (_derivedTypeCache.TryGetValue(baseType, out var cached))
 		{
@@ -116,7 +115,8 @@ internal sealed class ReflectionManager : IReflectionManager, IEngineReflectionM
 
 	private IEnumerable<Type> GetTypes()
 	{
-		foreach (var asm in _assemblies.GetAssemblies())
+		/*
+		foreach (var asm in ContentAssemblyManager.GetContentAssemblies())
 		{
 			foreach (var type in SafeGetTypes(asm))
 			{
@@ -126,6 +126,9 @@ internal sealed class ReflectionManager : IReflectionManager, IEngineReflectionM
 				yield return type;
 			}
 		}
+		*/
+
+		yield break;
 	}
 
     private static IEnumerable<Type> SafeGetTypes(Assembly assembly)

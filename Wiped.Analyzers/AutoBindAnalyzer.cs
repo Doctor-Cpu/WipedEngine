@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Wiped.Roslyn;
 
 namespace Wiped.Analyzers;
 
@@ -36,9 +37,6 @@ public sealed class AutoBindAnalyzer : DiagnosticAnalyzer
 
 	public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [MissingAutoBindInterface, AutoBindMissing, AutoBindInterfaceMustBeIManager];
 
-	private const string AutoBindAttributeName = "Wiped.Shared.IoC.AutoBindAttribute";
-	private const string IManagerName = "Wiped.Shared.IoC.IManager";
-
 	public override void Initialize(AnalysisContext context)
 	{
 		context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
@@ -54,16 +52,15 @@ public sealed class AutoBindAnalyzer : DiagnosticAnalyzer
 
 		var compilation = context.Compilation;
 
-        var autoBindAttribute = compilation.GetTypeByMetadataName(AutoBindAttributeName);
-        var iManagerInterface = compilation.GetTypeByMetadataName(IManagerName);
+        var autoBindAttribute = compilation.GetTypeByMetadataName(AutoBindAttribute);
+        var iManagerInterface = compilation.GetTypeByMetadataName(IManager);
 
         if (autoBindAttribute is null || iManagerInterface is null)
             return; // referenced assembly missing
 
 		var implementationLocation = typeSymbol.Locations.FirstOrDefault() ?? Location.None;
 
-   		var hasAutoBind = typeSymbol.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, autoBindAttribute));
-		if (!hasAutoBind)
+		if (!typeSymbol.HasAttribute(autoBindAttribute))
 		{
 			var implementedManagerInterfaces = GetImplementedInterfaces(typeSymbol, i => IsManagerInterface(i, iManagerInterface));
 			if (!implementedManagerInterfaces.Any())
@@ -116,7 +113,7 @@ public sealed class AutoBindAnalyzer : DiagnosticAnalyzer
 		if (SymbolEqualityComparer.Default.Equals(iface, iManager))
 			return true;
 
-		return iface.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, iManager));
+		return iface.ImplementsInterface(iManager);
 	}
 
 	private static ImmutableArray<INamedTypeSymbol> GetImplementedInterfaces(INamedTypeSymbol typeSymbol, Func<INamedTypeSymbol, bool> func)
@@ -128,12 +125,8 @@ public sealed class AutoBindAnalyzer : DiagnosticAnalyzer
 	{
 		var builder = ImmutableArray.CreateBuilder<INamedTypeSymbol>();
 
-		foreach (var attribute in typeSymbol.GetAttributes())
+		if (typeSymbol.GetAttribute(autoBindAttribute) is { } attribute)
 		{
-			// only process AutoBind attributes
-			if (!SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, autoBindAttribute))
-				continue;
-
 			// extract the services from the attributes constructor arguments
 			foreach (var argument in attribute.ConstructorArguments)
 				AddInterfacesFromArgument(argument, builder);

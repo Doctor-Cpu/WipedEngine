@@ -1,31 +1,31 @@
 namespace Wiped.Tools;
 
-internal abstract class BaseCliTool : BaseTool
+public abstract class BaseCliTool : BaseTool
 {
 	private readonly TextWriter _output;
 
 	public virtual int ArgMin => int.MinValue;
 	public virtual int ArgMax => int.MaxValue;
 
-	public override int Start(string[] args)
+	public override void Start(string[] args)
 	{
 		if (args.Length > ArgMax)
-			return ToolExitCodes.WrongArgCount;
+			return;
 
 		if (args.Length < ArgMin)
-			return ToolExitCodes.WrongArgCount;
+			return;
 
-		return Run(args);
+		Run(args);
 	}
 
-	protected abstract int Run(string[] args);
+	protected abstract void Run(string[] args);
 
 	protected void PrintText(string text)
 	{
 		_output.WriteLine(text);
 	}
 
-	internal BaseCliTool(TextWriter? output = null) : base()
+	internal BaseCliTool(TextWriter? output = null)
 	{
 		_output = output ?? Console.Out;
 	}

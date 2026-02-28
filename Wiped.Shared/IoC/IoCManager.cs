@@ -1,89 +1,191 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 
 namespace Wiped.Shared.IoC;
 
 public static class IoCManager
 {
-	internal static readonly IoCContainer EngineContainer = new();
-	internal static readonly IoCContainer ContentContainer = new();
+	private static readonly Dictionary<Type, Type> _bindings = [];
+	private static readonly Dictionary<Type, IoCInstance> _instances = [];
 
-	public static bool TryResolve<T>([NotNullWhen(true)] out T? val)
+	private static IoCLifecycle _state = IoCLifecycle.Constructing;
+
+	private const BindingFlags InjectionFlags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
+
+	public static bool TryResolve<T>([NotNullWhen(true)] out IoCDynamic<T>? val) where T : IManager
 	{
-		if (TryResolve(typeof(T), out var tmp))
+		if (_state == IoCLifecycle.Constructing)
+			throw new InvalidOperationException("Resolution not allowed yet");
+
+		var type = typeof(T);
+		if (!_bindings.TryGetValue(type, out var implType))
 		{
-			val = (T)tmp;
+			val = null;
+			return false;
+		}
+
+		if (_instances.TryGetValue(implType, out var existing))
+		{
+			val = new(existing.Instance);
 			return true;
 		}
 
-		val = default;
-		return false;
+		throw new InvalidOperationException($"{type.FullName} has an implmenentation of {implType.FullName} yet has no instance");
 	}
 
-	public static bool TryResolve(Type type, [NotNullWhen(true)] out object? val)
+	public static bool TryResolve(Type type, [NotNullWhen(true)] out IoCDynamic? val)
 	{
-		if (EngineContainer.TryResolve(type, out val))
+		if (_state == IoCLifecycle.Constructing)
+			throw new InvalidOperationException("Resolution not allowed yet");
+
+		if (!_bindings.TryGetValue(type, out var implType))
+		{
+			val = null;
+			return false;
+		}
+
+		if (_instances.TryGetValue(implType, out var existing))
+		{
+			val = new(existing.Instance);
 			return true;
+		}
 
-		if (ContentContainer.TryResolve(type, out val, false))
-			return true;
-
-		return false;
+		throw new InvalidOperationException($"{type.FullName} has an implmenentation of {implType.FullName} yet has no instance");
 	}
 
-	public static object Resolve(Type type)
+	public static IoCDynamic<T> Resolve<T>() where T : IManager
 	{
-		if (EngineContainer.TryResolve(type, out var val))
-			return val;
+		if (_state == IoCLifecycle.Constructing)
+			throw new InvalidOperationException("Resolution not allowed yet");
 
-		if (ContentContainer.TryResolve(type, out val))
-			return val;
-
-		throw new InvalidOperationException($"Cannot find resolve type {type.FullName}");
+		var type = typeof(T);
+		return new(ResolveManager(type));
 	}
 
-	public static T Resolve<T>()
+	public static IoCDynamic Resolve(Type type)
 	{
-		return (T)Resolve(typeof(T));
+		if (_state == IoCLifecycle.Constructing)
+			throw new InvalidOperationException("Resolution not allowed yet");
+
+		return new(ResolveManager(type));
 	}
 
 	internal static IEnumerable<object> GetAllResolved()
 	{
-		return EngineContainer.GetAllInstances().Concat(ContentContainer.GetAllInstances());
+		foreach (var holder in _instances.Values)
+			yield return holder.Instance;
 	}
 
 	public static void ResolveDependencies(object instance)
 	{
-		EngineContainer.InjectInto(instance);
-		ContentContainer.InjectInto(instance);
+		if (_state == IoCLifecycle.Constructing)
+			return;
+
+		var type = instance.GetType();
+
+		foreach (var field in type.GetFields(InjectionFlags))
+		{
+			if (!field.IsDefined(typeof(DependencyAttribute)))
+				continue;
+
+			InjectMember(instance, type, field, field.FieldType, wrapper => field.SetValue(instance, wrapper));
+		}
+
+		foreach (var prop in type.GetProperties(InjectionFlags))
+		{
+			if (!prop.IsDefined(typeof(DependencyAttribute)) || !prop.CanWrite)
+				continue;
+
+			InjectMember(instance, type, prop, prop.PropertyType, wrapper => prop.SetValue(instance, wrapper));
+		}
 	}
 
-	internal static void EngineTransitionTo(IoCLifecycle next)
+	internal static void CreateInstances()
 	{
-		EngineContainer.TransitionTo(next);
+		if (_state != IoCLifecycle.Resolving)
+			throw new InvalidOperationException($"Tried to create instances while not resolving");
+
+		foreach (var (type, implType) in _bindings)
+		{
+			var instance = (IManager)Activator.CreateInstance(implType)! ?? throw new InvalidOperationException($"Failed to create {implType.FullName}");
+			_instances[implType] = new(instance);
+		}
+
+		foreach (var instance in _instances.Values)
+			ResolveDependencies(instance.Instance);
+
+		_state = IoCLifecycle.Frozen;
 	}
 
-	internal static void ContentTransitionTo(IoCLifecycle next)
+	private static IManager ResolveManager(Type managerType)
 	{
-		ContentContainer.TransitionTo(next);
-	}
-	
-	internal static void AutoBindEngine()
-	{
-		EngineContainer.AutoBind();
+		if (!_bindings.TryGetValue(managerType, out var implType))
+			throw new InvalidOperationException($"Cannot find resolve type {managerType.FullName}");
+
+		if (!_instances.TryGetValue(implType, out var existing))
+			throw new InvalidOperationException($"{managerType.FullName} has an implmenentation of {implType.FullName} yet has no instance");
+
+		return existing.Instance;
 	}
 
-	internal static void AutoBindContent()
+	private static void InjectMember(object target, Type targetType, MemberInfo member, Type dynamicType, Action<object> setFunc)
 	{
-		ContentContainer.AutoBind();
+		if (!typeof(BaseIoCDynamic).IsAssignableFrom(dynamicType))
+			throw new InvalidOperationException($"Dependency {member.Name} in {targetType.FullName} must be IoCDynamic<IManager>");
+
+		var managerType = GetIocDynamicType(dynamicType);
+		var instance = ResolveManager(managerType);
+    	var wrapper = Activator.CreateInstance(dynamicType, instance)!;
+		setFunc(wrapper);
 	}
 
-	internal static void CreateInstancesEngine()
+	private static Type GetIocDynamicType(Type dynamicType) // incase any further wrappers (x to doubt)
 	{
-		EngineContainer.CreateInstances();
+		if (dynamicType.IsGenericType)
+		{
+			if (dynamicType.GetGenericTypeDefinition() == typeof(IoCDynamic<>))
+				return dynamicType.GetGenericArguments()[0];
+		}
+		else if (dynamicType == typeof(IoCDynamic))
+		{
+			throw new NotImplementedException();
+		}
+
+		throw new InvalidOperationException($"Cannot determine manager type for {dynamicType}");
 	}
 
-	internal static void CreateInstancesContent()
+	public static void Bind(Type interfaceType, Type implType)
 	{
-		ContentContainer.CreateInstances();
+		if (_state != IoCLifecycle.Constructing)
+			throw new InvalidOperationException($"Tried binding when Ioc isnt constructable");
+
+		if (!interfaceType.IsInterface)
+			throw new InvalidOperationException($"{interfaceType.FullName} must be an interface");
+
+		if (!typeof(IManager).IsAssignableFrom(interfaceType))
+			throw new InvalidOperationException($"{interfaceType.FullName} must implement IManager");
+
+		if (!interfaceType.IsAssignableFrom(implType))
+			throw new InvalidOperationException($"{implType.FullName} does not implement {interfaceType.FullName}");
+
+		if (_bindings.ContainsKey(interfaceType))
+			throw new InvalidOperationException($"Duplicate binding for {interfaceType.FullName}");
+
+		_bindings[interfaceType] = implType;
+	}
+
+	internal static void AllowResolving()
+	{
+		if (_state != IoCLifecycle.Constructing)
+			throw new InvalidOperationException($"Tried to allow resolving yet IoC isn't contructable");
+
+		_state = IoCLifecycle.Resolving;
+	}
+
+	private enum IoCLifecycle : byte
+	{
+		Constructing,   // bindings allowed, no resolution
+		Resolving,      // resolution + injection allowed
+		Frozen          // fully locked, runtime-only
 	}
 }
