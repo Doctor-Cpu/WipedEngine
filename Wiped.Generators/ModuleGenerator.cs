@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using System.Diagnostics;
 using System.Text;
 using Wiped.Roslyn;
 
@@ -29,16 +30,9 @@ public sealed class ModuleGenerator : IIncrementalGenerator
 
 	private static IEnumerable<string> GetModuleDependencies(Compilation compilation, INamedTypeSymbol contentAssemblyAttribute)
 	{
-		foreach (var assembly in compilation.SourceModule.ReferencedAssemblySymbols)
+		foreach (var assembly in compilation.GetContentAssemblies(contentAssemblyAttribute))
 		{
-			// skip self
-			if (SymbolEqualityComparer.Default.Equals(assembly, compilation.Assembly))
-				continue;
-
-			if (!assembly.HasAttribute(contentAssemblyAttribute))
-				continue;
-
-			var asmNamespace = assembly.GetGeneratorNamespace(compilation);
+			var asmNamespace = assembly.GetGeneratorNamespace(compilation, contentAssemblyAttribute);
 			var moduleName = $"{asmNamespace}.{ClassName}";
 
 			yield return $"{moduleName}.Instance";
@@ -126,7 +120,7 @@ public sealed class ModuleGenerator : IIncrementalGenerator
 			return;
 		}
 
-		foreach (var type in GetAllTypes(compilation.Assembly.GlobalNamespace))
+		foreach (var type in compilation.Assembly.GlobalNamespace.GetAllTypes())
 		{
 			if (type.TypeKind != TypeKind.Class)
 				continue;
@@ -134,15 +128,14 @@ public sealed class ModuleGenerator : IIncrementalGenerator
 			if (type.GetAttribute(autoBindSymbol) is not { } attr)
 				continue;
 
-			var serviceTypes = GetServiceTypes(attr);
-			if (!serviceTypes.Any())
-				continue;
-
-			foreach (var serviceType in serviceTypes)
+			foreach (var serviceSymbol in GetServiceTypeSymbols(attr))
 			{
+				var serviceName = serviceSymbol.ToDisplayString();
+				var implName = type.ToDisplayString();
+
 				sb.AppendLine(
 					$"""
-							IoCManager.Bind(typeof({serviceType}), typeof({type.ToDisplayString()}));
+							IoCManager.Bind<{serviceName}, {implName}>();
 					"""
 				);
 			}
@@ -155,37 +148,7 @@ public sealed class ModuleGenerator : IIncrementalGenerator
 		);
 	}
 
-	private static IEnumerable<INamedTypeSymbol> GetAllTypes(INamespaceSymbol namespaceSymbol)
-	{
-		foreach (var member in namespaceSymbol.GetMembers())
-		{
-			if (member is INamespaceSymbol ns)
-			{
-				foreach (var nested in GetAllTypes(ns))
-					yield return nested;
-			}
-			else if (member is INamedTypeSymbol type)
-			{
-				yield return type;
-
-				foreach (var nested in GetNestedTypes(type))
-					yield return nested;
-			}
-		}
-	}
-
-	private static IEnumerable<INamedTypeSymbol> GetNestedTypes(INamedTypeSymbol type)
-	{
-		foreach (var nested in type.GetTypeMembers())
-		{
-			yield return nested;
-
-			foreach (var deeper in GetNestedTypes(nested))
-				yield return deeper;
-		}
-	}
-
-	private static IEnumerable<string> GetServiceTypes(AttributeData attr)
+	private static IEnumerable<INamedTypeSymbol> GetServiceTypeSymbols(AttributeData attr)
 	{
 		foreach (var arg in attr.ConstructorArguments)
 		{
@@ -195,12 +158,12 @@ public sealed class ModuleGenerator : IIncrementalGenerator
 				foreach (var item in arg.Values)
 				{
 					if (item.Value is INamedTypeSymbol sym)
-						yield return sym.ToDisplayString();
+						yield return sym;
 				}
 			}
 			else if (arg.Value is INamedTypeSymbol sym)
 			{
-				yield return sym.ToDisplayString();
+				yield return sym;
 			}
 		}
 	}

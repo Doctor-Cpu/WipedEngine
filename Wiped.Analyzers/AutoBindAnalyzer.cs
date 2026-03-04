@@ -8,33 +8,6 @@ namespace Wiped.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class AutoBindAnalyzer : DiagnosticAnalyzer
 {
-	public static readonly DiagnosticDescriptor MissingAutoBindInterface = new(
-		id: "ENG004",
-		title: "AutoBind interface not implemented",
-		messageFormat: "Type '{0}' is marked with [AutoBind] but does not implement interface '{1}'",
-		category: "Engine.IoC",
-		defaultSeverity: DiagnosticSeverity.Error,
-		isEnabledByDefault: true
-	);
-
-	public static readonly DiagnosticDescriptor AutoBindMissing = new(
-		id: "ENG005",
-		title: "IManager interface specified but no AutoBind attribute",
-		messageFormat: "IManager interface '{1}' specified but no AutoBind attribute on '{0}'",
-		category: "Engine.IoC",
-		defaultSeverity: DiagnosticSeverity.Error,
-		isEnabledByDefault: true
-	);
-
-	public static readonly DiagnosticDescriptor AutoBindInterfaceMustBeIManager = new(
-		id: "ENG006",
-		title: "AutoBind interfaces must implement IManager",
-		messageFormat: "Interface '{0}' specified in [AutoBind] must implement IManager",
-		category: "Engine.IoC",
-		defaultSeverity: DiagnosticSeverity.Error,
-		isEnabledByDefault: true
-	);
-
 	public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [MissingAutoBindInterface, AutoBindMissing, AutoBindInterfaceMustBeIManager];
 
 	public override void Initialize(AnalysisContext context)
@@ -52,28 +25,28 @@ public sealed class AutoBindAnalyzer : DiagnosticAnalyzer
 
 		var compilation = context.Compilation;
 
-        var autoBindAttribute = compilation.GetTypeByMetadataName(AutoBindAttribute);
-        var iManagerInterface = compilation.GetTypeByMetadataName(IManager);
-
-        if (autoBindAttribute is null || iManagerInterface is null)
+        if (compilation.GetTypeByMetadataName(AutoBindAttribute) is not { } autoBindAttribute ||
+			compilation.GetTypeByMetadataName(IManager) is not { } iManagerInterface)
+		{
             return; // referenced assembly missing
-
-		var implementationLocation = typeSymbol.Locations.FirstOrDefault() ?? Location.None;
+		}
 
 		if (!typeSymbol.HasAttribute(autoBindAttribute))
 		{
-			var implementedManagerInterfaces = GetImplementedInterfaces(typeSymbol, i => IsManagerInterface(i, iManagerInterface));
+			var implementedManagerInterfaces = GetImplementedInterfaces(typeSymbol, iManagerInterface);
 			if (!implementedManagerInterfaces.Any())
 				return;
 
 			foreach (var iface in implementedManagerInterfaces)
 			{
-				context.ReportDiagnostic(Diagnostic.Create(
-					AutoBindMissing,
-					implementationLocation,
-					typeSymbol.Name,
-					iface.ToDisplayString()
-				));
+				context.ReportDiagnostic(
+					Diagnostic.Create(
+						AutoBindMissing,
+						typeSymbol.GetLocation(),
+						typeSymbol.Name,
+						iface.ToDisplayString()
+					)
+				);
 			}
 
 			return;
@@ -86,39 +59,33 @@ public sealed class AutoBindAnalyzer : DiagnosticAnalyzer
 			var isImplemented = typeSymbol.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, declaredInterface));
 			if (!isImplemented)
 			{
-				context.ReportDiagnostic(Diagnostic.Create(
-					MissingAutoBindInterface,
-					implementationLocation,
-					typeSymbol.Name,
-					declaredInterface.ToDisplayString()
-				));
+				context.ReportDiagnostic(
+					Diagnostic.Create(
+						MissingAutoBindInterface,
+						typeSymbol.GetLocation(),
+						typeSymbol.Name,
+						declaredInterface.ToDisplayString()
+					)
+				);
 			}
 
-			var interfaceLocation = declaredInterface.Locations.FirstOrDefault() ?? Location.None;
-
-			var interfaceImplementsIManager = IsManagerInterface(declaredInterface, iManagerInterface);
+			var interfaceImplementsIManager = declaredInterface.ImplementsInterface(iManagerInterface);
 			if (!interfaceImplementsIManager)
 			{
-				context.ReportDiagnostic(Diagnostic.Create(
-					AutoBindInterfaceMustBeIManager,
-					interfaceLocation,
-					declaredInterface.ToDisplayString()
-				));
+				context.ReportDiagnostic(
+					Diagnostic.Create(
+						AutoBindInterfaceMustBeIManager,
+						declaredInterface.GetLocation(),
+						declaredInterface.ToDisplayString()
+					)
+				);
 			}
 		}
 	}
 
-	private static bool IsManagerInterface(INamedTypeSymbol iface, INamedTypeSymbol iManager)
+	private static ImmutableArray<INamedTypeSymbol> GetImplementedInterfaces(INamedTypeSymbol typeSymbol, INamedTypeSymbol iManagerInterface)
 	{
-		if (SymbolEqualityComparer.Default.Equals(iface, iManager))
-			return true;
-
-		return iface.ImplementsInterface(iManager);
-	}
-
-	private static ImmutableArray<INamedTypeSymbol> GetImplementedInterfaces(INamedTypeSymbol typeSymbol, Func<INamedTypeSymbol, bool> func)
-	{
-		return [.. typeSymbol.AllInterfaces.Where(i => func(i))];
+		return [.. typeSymbol.AllInterfaces.Where(i => i.ImplementsInterface(iManagerInterface))];
 	}
 
 	private static ImmutableArray<INamedTypeSymbol> GetInterfacesDeclaredInAutoBind(INamedTypeSymbol typeSymbol, INamedTypeSymbol autoBindAttribute)

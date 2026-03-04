@@ -6,6 +6,7 @@ namespace Wiped.Shared.IoC;
 public static class IoCManager
 {
 	private static readonly Dictionary<Type, Type> _bindings = [];
+	private static readonly Dictionary<Type, Dictionary<object, Type>> _switchableBindings = [];
 	private static readonly Dictionary<Type, IoCInstance> _instances = [];
 
 	private static IoCLifecycle _state = IoCLifecycle.Constructing;
@@ -154,19 +155,18 @@ public static class IoCManager
 		throw new InvalidOperationException($"Cannot determine manager type for {dynamicType}");
 	}
 
-	public static void Bind(Type interfaceType, Type implType)
+	public static void Bind<TInterface, TImplementation>()
+		where TInterface : IManager
+		where TImplementation : TInterface
 	{
 		if (_state != IoCLifecycle.Constructing)
 			throw new InvalidOperationException($"Tried binding when Ioc isnt constructable");
 
+		var interfaceType = typeof(TInterface);
+		var implType = typeof(TImplementation);
+
 		if (!interfaceType.IsInterface)
 			throw new InvalidOperationException($"{interfaceType.FullName} must be an interface");
-
-		if (!typeof(IManager).IsAssignableFrom(interfaceType))
-			throw new InvalidOperationException($"{interfaceType.FullName} must implement IManager");
-
-		if (!interfaceType.IsAssignableFrom(implType))
-			throw new InvalidOperationException($"{implType.FullName} does not implement {interfaceType.FullName}");
 
 		if (_bindings.ContainsKey(interfaceType))
 			throw new InvalidOperationException($"Duplicate binding for {interfaceType.FullName}");
@@ -174,10 +174,53 @@ public static class IoCManager
 		_bindings[interfaceType] = implType;
 	}
 
+	/*
+	public static void BindSwitchable<TInterface, TImplementation, TSelector>()
+		where TSelector : Enum
+		where TInterface : ISwitchableManager<TSelector>
+		where TImplementation : TInterface
+	{
+		if (_state != IoCLifecycle.Constructing)
+			throw new InvalidOperationException("Tried binding when IoC isnt constructable");
+
+		var interfaceType = typeof(TInterface);
+		var implType = typeof(TImplementation);
+		var selectorType = typeof(TSelector);
+
+		if (!interfaceType.IsInterface)
+			throw new InvalidOperationException($"{interfaceType.FullName} must be an interface");
+
+		if (!_switchableBindings.TryGetValue(interfaceType, out var map))
+			_switchableBindings[interfaceType] = map = [];
+
+		if (map.ContainsKey(selectorType))
+			throw new InvalidOperationException($"Duplicate selector {selectorType} for {interfaceType.FullName}");
+
+		map[selectorType] = implType;
+	}
+
+	public static void Switch<TSwitchable, TSelector>(TSelector selector)
+		where TSelector : Enum
+		where TSwitchable : ISwitchableManager<TSelector>
+	{
+	}
+	*/
+
 	internal static void AllowResolving()
 	{
 		if (_state != IoCLifecycle.Constructing)
 			throw new InvalidOperationException($"Tried to allow resolving yet IoC isn't contructable");
+
+		// TODO: specify a default implementation so this works
+		/*
+		foreach (var (interfaceType, map) in _switchableBindings)
+		{
+			foreach (var (selectorType, implType) in map)
+			{
+				_bindings[interfaceType] = implType;
+			}
+		}
+		*/
 
 		_state = IoCLifecycle.Resolving;
 	}
