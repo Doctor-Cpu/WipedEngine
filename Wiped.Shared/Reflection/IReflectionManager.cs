@@ -7,7 +7,7 @@ public interface IReflectionManager : IManager
 {
 	IEnumerable<Type> GetAllDerivedTypes<TBase>();
 
-	IEnumerable<KeyValuePair<Type, TAttribute>> GetTypesWithAttribute<TAttribute>(bool allowUnimplementedTypes = false) where TAttribute : Attribute;
+	//IEnumerable<KeyValuePair<Type, TAttribute>> GetTypesWithAttribute<TAttribute>(bool allowUnimplementedTypes = false) where TAttribute : Attribute;
 
 	IEnumerable<MemberAttributeInfo<TAttribute>> GetMemberAttributes<TAttribute>(Type type) where TAttribute : Attribute;
 
@@ -17,8 +17,8 @@ public interface IReflectionManager : IManager
 		internal MemberInfo Member { get; }
 		public Type Type { get; }
 		public TAttribute Attribute { get; }
-		
-		internal MemberAttributeInfo(string name, MemberInfo member, Type type, TAttribute attribute) 
+
+		internal MemberAttributeInfo(string name, MemberInfo member, Type type, TAttribute attribute)
 		{
 			Name = name;
 			Member = member;

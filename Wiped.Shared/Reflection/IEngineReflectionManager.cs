@@ -6,5 +6,7 @@ namespace Wiped.Shared.Reflection;
 
 internal interface IEngineReflectionManager : IManager
 {
+	void ConsumeRegistry(IGeneratedModule root);
+	IEnumerable<Type> GetAllDerivedTypes<TBase>();
 	bool TryGetStaticValue<T>(MemberInfo member, [NotNullWhen(true)] out T? value) where T : class;
 }

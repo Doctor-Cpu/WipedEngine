@@ -2,16 +2,28 @@ namespace Wiped.Shared.Reflection;
 
 internal sealed class TypeRegistry : ITypeRegistry
 {
-	private readonly Dictionary<Type, List<Type>> _derived = [];
+	private readonly Dictionary<Type, List<(Type type, ReflectionVisibility visibility)>> _derived = [];
 
-    public void RegisterDerived(Type baseType, Type concreteType)
+    public void RegisterDerived<TBase, TConcrete>(ReflectionVisibility visibility)
 	{
+		var baseType = typeof(TBase);
+		var concreteType = typeof(TConcrete);
+
 		if (!_derived.TryGetValue(baseType, out var list))
 			_derived[baseType] = list = [];
 
-		list.Add(concreteType);
+		list.Add((concreteType, visibility));
 	}
 
-    public IReadOnlyList<Type> GetDerived(Type baseType)
-		=> _derived.TryGetValue(baseType, out var list) ? list : [];
+    public IEnumerable<Type> GetDerived<TBase>(ReflectionVisibility maxVisibility)
+	{
+		if (!_derived.TryGetValue(typeof(TBase), out var list))
+			yield break;
+
+		foreach (var (type, visibility) in list)
+		{
+			if (visibility <= maxVisibility)
+				yield return type;
+		}
+	}
 }

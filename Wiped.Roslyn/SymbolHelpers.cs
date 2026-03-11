@@ -1,5 +1,4 @@
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Wiped.Roslyn;
 
@@ -19,6 +18,20 @@ public static class SymbolHelpers
 
 			if (SymbolComparer.Equals(iFace.OriginalDefinition, interfaceSymbol?.OriginalDefinition))
 				return true;
+		}
+
+		return false;
+	}
+
+	public static bool InheritsFrom(this INamedTypeSymbol type, INamedTypeSymbol baseType)
+	{
+		var current = type.BaseType;
+		while (current != null)
+		{
+			if (SymbolComparer.Equals(current.OriginalDefinition, baseType.OriginalDefinition))
+				return true;
+
+			current = current.BaseType;
 		}
 
 		return false;
