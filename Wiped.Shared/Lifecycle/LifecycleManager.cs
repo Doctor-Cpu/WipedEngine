@@ -7,7 +7,7 @@ namespace Wiped.Shared.Lifecycle;
 [AutoBind(typeof(ILifecycleManager))]
 internal sealed class LifecycleManager : ILifecycleManager, IHotReloadable
 {
-	[Dependency] private readonly IoCDynamic<IReflectionManager> _reflection = default!;
+	[Dependency] private readonly IoCDynamic<IEngineReflectionManager> _reflection = default!;
 
 	private readonly Dictionary<Type, object> _instances = [];
 
