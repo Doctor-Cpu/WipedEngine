@@ -12,7 +12,7 @@ internal sealed class TextLocalizationManager : ITextLocalizationManager, IHotRe
 	[Dependency] private readonly IoCDynamic<ICVarManager> _cvar = default!;
 	[Dependency] private readonly IoCDynamic<IContentVFSManager> _vfs = default!;
 
-	public Type[] After = [typeof(ICVarManager)];
+	public Type[] After => [typeof(ICVarManager)];
 
 	public void Initialize()
 	{
