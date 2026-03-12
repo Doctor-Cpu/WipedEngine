@@ -1,12 +1,21 @@
+using Wiped.Shared.Reflection;
+
 namespace Wiped.Shared;
 
 internal static class ModuleRunner
 {
-	public static void RunIoC(IGeneratedModule root)
+	public static void RegisterIoC(IGeneratedModule root)
 	{
         var ordered = TopologicalSort(root);
 		foreach (var module in ordered)
 			module.RegisterIoC();
+	}
+
+	public static void RegisterReflection(IGeneratedModule root, ITypeRegistry registry)
+	{
+        var ordered = TopologicalSort(root);
+		foreach (var module in ordered)
+			module.RegisterReflection(ref registry);
 	}
 
 	private static List<IGeneratedModule> TopologicalSort(IGeneratedModule root)

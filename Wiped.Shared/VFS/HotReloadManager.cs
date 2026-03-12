@@ -65,7 +65,7 @@ internal sealed class HotReloadManager : IHotReloadManager
 			{
 				var registeredAfter = GetRegisteredType(after);
 
-				if (!byType.ContainsKey(registeredAfter) && registeredAfter is not IManager)
+				if (!byType.ContainsKey(registeredAfter) && typeof(IManager).IsAssignableFrom(registeredAfter))
 					throw new InvalidOperationException($"{from.Name} depends on {registeredAfter.Name}, which is not registered");
 
 				if (edges[registeredAfter].Add(from))
@@ -76,11 +76,11 @@ internal sealed class HotReloadManager : IHotReloadManager
 			{
 				var registeredBefore = GetRegisteredType(before);
 
-				if (!byType.ContainsKey(registeredBefore) && registeredBefore is not IManager)
+				if (!byType.ContainsKey(registeredBefore) && typeof(IManager).IsAssignableFrom(registeredBefore))
 					throw new InvalidOperationException($"{from.Name} must run before {registeredBefore.Name}, which is not registered");
 
 				if (edges[from].Add(registeredBefore))
-					indegree[before]++;
+					indegree[registeredBefore]++;
 			}
 		}
 

@@ -8,34 +8,7 @@ namespace Wiped.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class DiskDefinitionAnalyzer : DiagnosticAnalyzer
 {
-    public static readonly DiagnosticDescriptor MustBeSealed = new(
-        id: "ENG001",
-        title: "DiskDefinition must be sealed",
-        messageFormat: "Type '{0}' marked with [DiskDefinition] must be sealed",
-        category: "Engine.Disk",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true
-    );
-
-    public static readonly DiagnosticDescriptor ParameterlessCtorRequired = new(
-        id: "ENG002",
-        title: "DiskDefinition must have a parameterless constructor",
-        messageFormat: "Type '{0}' marked with [DiskDefinition] must have a public parameterless constructor",
-        category: "Engine.Disk",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true
-    );
-
-    public static readonly DiagnosticDescriptor AbstractTypeNotAllowed = new(
-        id: "ENG003",
-        title: "DiskDefinition cannot be abstract",
-        messageFormat: "Type '{0}' marked with [DiskDefinition] cannot be abstract",
-        category: "Engine.Disk",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true
-    );
-
-	public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [MustBeSealed, ParameterlessCtorRequired, AbstractTypeNotAllowed];
+	public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [DiskDefinitionMustBeSealed, DiskDefinitionParameterlessCtorRequired, DiskDefinitionAbstractTypeNotAllowed];
 
 	public override void Initialize(AnalysisContext context)
 	{
@@ -72,7 +45,7 @@ public sealed class DiskDefinitionAnalyzer : DiagnosticAnalyzer
 		if (!type.IsSealed)
 		{
 			context.ReportDiagnostic(Diagnostic.Create(
-				MustBeSealed,
+				DiskDefinitionMustBeSealed,
 				location,
 				type.Name
 			));
@@ -81,7 +54,7 @@ public sealed class DiskDefinitionAnalyzer : DiagnosticAnalyzer
 		if (type.IsAbstract)
 		{
 			context.ReportDiagnostic(Diagnostic.Create(
-				AbstractTypeNotAllowed,
+				DiskDefinitionAbstractTypeNotAllowed,
 				location,
 				type.Name
 			));
@@ -90,7 +63,7 @@ public sealed class DiskDefinitionAnalyzer : DiagnosticAnalyzer
 		if (!type.InstanceConstructors.Any(c => c.DeclaredAccessibility == Accessibility.Public && c.Parameters.Length == 0))
 		{
 			context.ReportDiagnostic(Diagnostic.Create(
-				ParameterlessCtorRequired,
+				DiskDefinitionParameterlessCtorRequired,
 				location,
 				type.Name
 			));

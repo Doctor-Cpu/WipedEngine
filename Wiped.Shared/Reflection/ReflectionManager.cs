@@ -1,85 +1,41 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Wiped.Shared.IoC;
-using Wiped.Shared.VFS;
 
 namespace Wiped.Shared.Reflection;
 
 [AutoBind(typeof(IReflectionManager), typeof(IEngineReflectionManager))]
-internal sealed class ReflectionManager : IReflectionManager, IEngineReflectionManager, IHotReloadable
+internal sealed class ReflectionManager : IReflectionManager, IEngineReflectionManager
 {
-    private readonly Dictionary<Type, List<Type>> _derivedTypeCache = [];
-	private readonly Dictionary<Type, List<(Type, Attribute)>> _attributeTypeCache = [];
+	private ITypeRegistry _typeRegistry = default!;
 
 	private const BindingFlags MemberAttributeFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
 
-	public void Shutdown()
+	public void ConsumeRegistry(IGeneratedModule root)
 	{
-		_derivedTypeCache.Clear();
-		_attributeTypeCache.Clear();
+		var registry = new TypeRegistry();
+		ModuleRunner.RegisterReflection(root, registry);
+		_typeRegistry = registry;
 	}
 
-	public IEnumerable<Type> GetAllDerivedTypes<TBase>()
+	IEnumerable<Type> IReflectionManager.GetAllDerivedTypes<TBase>()
 	{
 		var baseType = typeof(TBase);
 		if (baseType.GetCustomAttribute<ReflectableAttribute>() is not { } )
 			throw new InvalidOperationException($"{baseType} must have the [Reflectable] attribute in order to get derived types");
 
-		if (_derivedTypeCache.TryGetValue(baseType, out var cached))
-		{
-			foreach (var type in cached)
-				yield return type;
-
-			yield break;
-		}
-
-		cached = [];
-
-		foreach (var type in GetTypes())
-		{
-			if (type.IsAbstract || type.IsInterface)
-				continue;
-
-			if (!baseType.IsAssignableFrom(type))
-				continue;
-
+		foreach (var type in _typeRegistry.GetDerived<TBase>(ReflectionVisibility.Content))
 			yield return type;
-			cached.Add(type);
-		}
-
-		_derivedTypeCache[baseType] = cached;
 	}
 
-	public IEnumerable<KeyValuePair<Type, TAttribute>> GetTypesWithAttribute<TAttribute>(bool allowUnimplementedTypes = false) where TAttribute : Attribute
+	IEnumerable<Type> IEngineReflectionManager.GetAllDerivedTypes<TBase>()
 	{
-		var attrType = typeof(TAttribute);
+		var baseType = typeof(TBase);
+		if (baseType.GetCustomAttribute<ReflectableAttribute>() is not { } )
+			throw new InvalidOperationException($"{baseType} must have the [Reflectable] attribute in order to get derived types");
 
-		if (_attributeTypeCache.TryGetValue(attrType, out var cached))
-		{
-			foreach (var (type, attr) in cached)
-				yield return KeyValuePair.Create(type, (TAttribute)attr);
-
-			yield break;
-		}
-
-		cached = [];
-
-		foreach (var type in GetTypes())
-		{
-			if (!allowUnimplementedTypes)
-			{
-				if (type.IsAbstract || type.IsInterface)
-					continue;
-			}
-
-			if (type.GetCustomAttribute<TAttribute>() is not TAttribute attr)
-				continue;
-
-			yield return KeyValuePair.Create(type, attr);
-			cached.Add((type, attr));
-		}
-
-		_attributeTypeCache[attrType] = cached;
+		foreach (var type in _typeRegistry.GetDerived<TBase>(ReflectionVisibility.Engine))
+			yield return type;
 	}
 
 	public IEnumerable<IReflectionManager.MemberAttributeInfo<TAttribute>> GetMemberAttributes<TAttribute>(Type type) where TAttribute : Attribute
@@ -111,35 +67,5 @@ internal sealed class ReflectionManager : IReflectionManager, IEngineReflectionM
 		};
 
 		return value != null;
-	}
-
-	private IEnumerable<Type> GetTypes()
-	{
-		/*
-		foreach (var asm in ContentAssemblyManager.GetContentAssemblies())
-		{
-			foreach (var type in SafeGetTypes(asm))
-			{
-				if (type is null)
-					continue;
-
-				yield return type;
-			}
-		}
-		*/
-
-		yield break;
-	}
-
-    private static IEnumerable<Type> SafeGetTypes(Assembly assembly)
-	{
-		try
-		{
-			return assembly.GetTypes();
-		}
-		catch (ReflectionTypeLoadException e)
-		{
-			return e.Types.Where(t => t != null)!;
-		}
 	}
 }

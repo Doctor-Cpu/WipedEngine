@@ -7,5 +7,5 @@ public interface IGeneratedModule
 	IReadOnlyList<IGeneratedModule> Dependencies => [];
 
 	abstract void RegisterIoC();
-	//abstract void RegisterReflection(ITypeRegistry registry);
+	abstract void RegisterReflection(ref ITypeRegistry registry);
 }
