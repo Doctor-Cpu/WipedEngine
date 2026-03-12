@@ -18,19 +18,7 @@ public sealed partial class ModuleGenerator : IIncrementalGenerator
 		if (compilation.GetTypeByMetadataName(ReflectableAttribute) is not { } reflectableAttr)
 			goto end;
 
-		var allTypes = compilation.Assembly.GlobalNamespace.GetAllTypes().ToList();
-		List<INamedTypeSymbol> reflectableBases = new(allTypes.Count);
-		foreach (var type in allTypes)
-		{
-			if (type.GetAttribute(reflectableAttr) is { })
-				reflectableBases.Add(type);
-		}
-
-		// nothing to do so save the expensive checks ahead
-		if (!reflectableBases.Any())
-			goto end;
-
-		foreach (var type in allTypes)
+		foreach (var type in compilation.Assembly.GlobalNamespace.GetAllTypes())
 		{
 			if (type.TypeKind is not TypeKind.Class and not TypeKind.Struct)
 				continue;
@@ -38,7 +26,7 @@ public sealed partial class ModuleGenerator : IIncrementalGenerator
 			if (type.IsAbstract)
 				continue;
 
-			if (type.IsUnboundGenericType || type.TypeParameters.Any()) //no open generics for now
+			if (type.IsGenericType || type.TypeParameters.Any()) //no open generics for now
 				continue;
 
 			if (type.DeclaredAccessibility switch
@@ -54,11 +42,8 @@ public sealed partial class ModuleGenerator : IIncrementalGenerator
 				continue;
 			}
 
-			foreach (var baseType in reflectableBases)
+			foreach (var baseType in GetReflectableBases(type, reflectableAttr))
 			{
-				if (!type.InheritsFrom(baseType) && !type.ImplementsInterface(baseType))
-					continue;
-
 				sb.AppendLine(
 					$"""
 							registry.RegisterDerived<{baseType.ToDisplayString()}, {type.ToDisplayString()}>({visibility});
@@ -76,4 +61,18 @@ public sealed partial class ModuleGenerator : IIncrementalGenerator
 		);
 	}
 
+	private static IEnumerable<INamedTypeSymbol> GetReflectableBases(INamedTypeSymbol type, INamedTypeSymbol reflectableAttr)
+	{
+		for (var current = type.BaseType; current != null; current = current.BaseType)
+		{
+			if (current.GetAttribute(reflectableAttr) is not null)
+				yield return current;
+		}
+
+		foreach (var iface in type.AllInterfaces)
+		{
+			if (iface.GetAttribute(reflectableAttr) is not null)
+				yield return iface;
+		}
+	}
 }

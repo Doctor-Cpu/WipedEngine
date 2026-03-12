@@ -99,6 +99,18 @@ public static class SymbolHelpers
 		}
 	}
 
+	public static IEnumerable<INamedTypeSymbol> GetAllTypes(this Compilation compilation)
+	{
+		foreach (var assembly in compilation.SourceModule.ReferencedAssemblySymbols)
+		{
+			foreach (var type in assembly.GlobalNamespace.GetAllTypes())
+				yield return type;
+		}
+
+		foreach (var type in compilation.Assembly.GlobalNamespace.GetAllTypes())
+			yield return type;
+	}
+
 	public static IEnumerable<INamedTypeSymbol> GetNestedTypes(this INamedTypeSymbol type)
 	{
 		foreach (var nested in type.GetTypeMembers())
