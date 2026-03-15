@@ -5,9 +5,11 @@ namespace Wiped.Shared.Reflection;
 
 public interface IReflectionManager : IManager
 {
-	IEnumerable<Type> GetAllDerivedTypes<TBase>();
+	IEnumerable<Type> GetAllDerivedTypes<TBase>()
+		where TBase : notnull;
 
-	//IEnumerable<KeyValuePair<Type, TAttribute>> GetTypesWithAttribute<TAttribute>(bool allowUnimplementedTypes = false) where TAttribute : Attribute;
+	IEnumerable<KeyValuePair<Type, TAttribute>> GetTypesWithAttribute<TAttribute>(bool allowUnimplementedTypes = false)
+		where TAttribute : Attribute;
 
 	IEnumerable<MemberAttributeInfo<TAttribute>> GetMemberAttributes<TAttribute>(Type type) where TAttribute : Attribute;
 

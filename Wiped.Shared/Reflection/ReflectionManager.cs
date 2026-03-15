@@ -19,23 +19,43 @@ internal sealed class ReflectionManager : IReflectionManager, IEngineReflectionM
 	}
 
 	IEnumerable<Type> IReflectionManager.GetAllDerivedTypes<TBase>()
+		=> GetAllDerivedTypes<TBase>(ReflectionVisibility.Content);
+	IEnumerable<Type> IEngineReflectionManager.GetAllDerivedTypes<TBase>()
+		=> GetAllDerivedTypes<TBase>(ReflectionVisibility.Engine);
+
+	private IEnumerable<Type> GetAllDerivedTypes<TBase>(ReflectionVisibility maxVisibility) where TBase : notnull
 	{
 		var baseType = typeof(TBase);
-		if (baseType.GetCustomAttribute<ReflectableAttribute>() is not { } )
-			throw new InvalidOperationException($"{baseType} must have the [Reflectable] attribute in order to get derived types");
+		if (baseType.GetCustomAttribute<ReflectableBaseUsageAttribute>() is not { } )
+			throw new InvalidOperationException($"{baseType} must have the [ReflectableBaseUsage] attribute in order to get derived types");
 
-		foreach (var type in _typeRegistry.GetDerived<TBase>(ReflectionVisibility.Content))
+		foreach (var type in _typeRegistry.GetDerived<TBase>(maxVisibility))
 			yield return type;
 	}
 
-	IEnumerable<Type> IEngineReflectionManager.GetAllDerivedTypes<TBase>()
-	{
-		var baseType = typeof(TBase);
-		if (baseType.GetCustomAttribute<ReflectableAttribute>() is not { } )
-			throw new InvalidOperationException($"{baseType} must have the [Reflectable] attribute in order to get derived types");
+	IEnumerable<KeyValuePair<Type, TAttribute>> IReflectionManager.GetTypesWithAttribute<TAttribute>(bool allowUnimplementedTypes)
+		=> GetTypesWithAttribute<TAttribute>(allowUnimplementedTypes, ReflectionVisibility.Content);
+	IEnumerable<KeyValuePair<Type, TAttribute>> IEngineReflectionManager.GetTypesWithAttribute<TAttribute>(bool allowUnimplementedTypes)
+		=> GetTypesWithAttribute<TAttribute>(allowUnimplementedTypes, ReflectionVisibility.Engine);
 
-		foreach (var type in _typeRegistry.GetDerived<TBase>(ReflectionVisibility.Engine))
-			yield return type;
+	private IEnumerable<KeyValuePair<Type, TAttribute>> GetTypesWithAttribute<TAttribute>(bool allowUnimplementedTypes, ReflectionVisibility maxVisibility) where TAttribute : Attribute
+	{
+		var attrType = typeof(TAttribute);
+		if (attrType.GetCustomAttribute<ReflectableAttributeUsageAttribute>() is not { } )
+			throw new InvalidOperationException($"{attrType} must have the [ReflectableAttributeUsage] attribute in order to get derived types");
+
+		foreach (var kv in _typeRegistry.GetTypesWithAttribute<TAttribute>(maxVisibility))
+		{
+			var (type, _) = kv;
+
+			if (!allowUnimplementedTypes)
+			{
+				if (type.IsAbstract || type.IsInterface)
+					continue;
+			}
+
+			yield return kv;
+		}
 	}
 
 	public IEnumerable<IReflectionManager.MemberAttributeInfo<TAttribute>> GetMemberAttributes<TAttribute>(Type type) where TAttribute : Attribute

@@ -7,5 +7,5 @@ internal interface ILifecycleManager : IManager
     T Get<T>() where T : notnull;
     object Get(Type type);
 
-    IEnumerable<T> GetAll<T>();
+    IEnumerable<T> GetAll<T>() where T : notnull;
 }

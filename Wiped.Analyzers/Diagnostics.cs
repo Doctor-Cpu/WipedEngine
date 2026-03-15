@@ -76,4 +76,22 @@ public static class Diagnostics
 		customTags: ["CompilationEnd"],
 		isEnabledByDefault: true
 	);
+
+	public static readonly DiagnosticDescriptor ReflectableBaseUsageMustBeUnsealed = new(
+		id: "ENG009",
+    	title: "ReflectableBaseUsage applied to a sealed class",
+		messageFormat: "Type '{0}' has the ReflectableBaseUsage attribute when it cannot be inherited",
+		category: "Engine.Reflection",
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor ReflectableAttrUsageOnNonAttr = new(
+		id: "ENG010",
+    	title: "ReflectableAttributeUsage applied to a non-attribute",
+		messageFormat: "Type '{0}' has the ReflectableAttributeUsage attribute when it is not an attribute itself",
+		category: "Engine.Reflection",
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
 }

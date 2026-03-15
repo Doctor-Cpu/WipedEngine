@@ -2,7 +2,7 @@ using Wiped.Shared.Reflection;
 
 namespace Wiped.Shared.CliArgs.Args;
 
-[Reflectable]
+[ReflectableBaseUsage]
 internal abstract class BaseCliArg
 {
 	public abstract string Name();
