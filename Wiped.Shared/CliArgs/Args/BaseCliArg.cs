@@ -9,7 +9,7 @@ internal abstract class BaseCliArg
 	public abstract string Desc();
 
 	public virtual int MinArgs() => 0;
-	public virtual int MaxArgs() => 0;
+	public virtual int? MaxArgs() => 0;
 
 	public abstract int Run(string[] args);
 

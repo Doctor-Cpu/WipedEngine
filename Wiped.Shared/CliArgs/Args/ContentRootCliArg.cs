@@ -11,11 +11,11 @@ internal sealed class ContentRootCliArg : BaseCliArg
     public override string Desc() => "Specify the root folder for content.";
 
 	public override int MinArgs() => 1;
-	public override int MaxArgs() => 1;
+	public override int? MaxArgs() => null;
 
 	public override int Run(string[] args)
 	{
-		_vfs.Value.Bootstrap(args[0]);
-		return MaxArgs();
+		_vfs.Value.Bootstrap(args);
+		return args.Length;
 	}
 }

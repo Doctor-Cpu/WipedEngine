@@ -15,6 +15,7 @@ internal sealed class HelpCliArg : BaseCliArg
 		foreach (var arg in _lifecycle.Value.GetAll<BaseCliArg>())
 			Console.WriteLine(arg.Usage());
 
-		return MaxArgs();
+		Environment.Exit(0);
+		return 0;
 	}
 }

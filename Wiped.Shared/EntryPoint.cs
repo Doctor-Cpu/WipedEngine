@@ -16,10 +16,10 @@ public static class EntryPoint
 		var reflection = IoCManager.Resolve<IEngineReflectionManager>().Value;
 		reflection.ConsumeRegistry(rootModule);
 
-		var hotReload = IoCManager.Resolve<IHotReloadManager>().Value;
-		hotReload.Initialize();
-
 		var cli = IoCManager.Resolve<ICliArgManager>().Value;
 		cli.UseArgs(args);
+
+		var hotReload = IoCManager.Resolve<IHotReloadManager>().Value;
+		hotReload.Initialize();
 	}
 }

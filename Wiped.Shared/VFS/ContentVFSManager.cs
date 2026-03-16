@@ -7,21 +7,28 @@ namespace Wiped.Shared.VFS;
 [AutoBind(typeof(IContentVFSManager), typeof(IEngineContentVFSManager))]
 internal sealed class ContentVFSManager : IContentVFSManager, IEngineContentVFSManager
 {
-	private string _root = default!;
+	private List<string> _roots = default!;
 	private bool _initialized;
 
-	public void Bootstrap(string root)
+	public void Bootstrap(params string[] roots)
 	{
 		if (_initialized)
 			throw new InvalidOperationException("VFS already bootstrapped");
 
-		if (string.IsNullOrWhiteSpace(root))
+		if (!roots.Any())
 			throw new InvalidOperationException($"ContentRoot not provided");
 
-		_root = Path.GetFullPath(root);
+		_roots = new(roots.Length);
 
-		if (!Directory.Exists(_root))
-			throw new DirectoryNotFoundException(_root);
+		foreach (var root in roots)
+		{
+			var fullRoot = Path.GetFullPath(root);
+
+			if (!Directory.Exists(fullRoot))
+				throw new DirectoryNotFoundException(fullRoot);
+
+			_roots.Add(fullRoot);
+		}
 
 		_initialized = true;
 	}
@@ -34,21 +41,31 @@ internal sealed class ContentVFSManager : IContentVFSManager, IEngineContentVFSM
     }
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private string Resolve(ContentPath path)
+	private string Resolve(ContentPath path, out string sourceRoot)
 	{
 		EnsureInitialized();
-		return Path.Combine(_root, path.ToString());
+		foreach (var root in _roots)
+		{
+			var full = Path.Combine(root, path.ToString());
+			if (!File.Exists(full) && !Directory.Exists(full))
+				continue;
+
+			sourceRoot = root;
+			return full;
+		}
+
+		throw new FileNotFoundException(path.ToString());
 	}
 
 	public Stream? GetFile(ContentPath path)
 	{
-		var full = Resolve(path);
+		var full = Resolve(path, out _);
 		return File.Exists(full) ? File.OpenRead(full) : null;
 	}
 
 	public Stream GetFileOrThrow(ContentPath path)
 	{
-		var full = Resolve(path);
+		var full = Resolve(path, out _);
 		if (!File.Exists(full))
 			throw new FileNotFoundException($"{path}");
 
@@ -57,13 +74,13 @@ internal sealed class ContentVFSManager : IContentVFSManager, IEngineContentVFSM
 
 	public bool TryGetFile(ContentPath path, [NotNullWhen(true)] out Stream? file)
 	{
-		var full = Resolve(path);
+		var full = Resolve(path, out _);
 		if (!File.Exists(full))
 		{
 			file = null;
 			return false;
 		}
-		
+
 		file = File.OpenRead(full);
 		return true;
 	}
@@ -76,7 +93,7 @@ internal sealed class ContentVFSManager : IContentVFSManager, IEngineContentVFSM
 
     public IEnumerable<ContentPath> Enumerate(ContentPath folderPath, bool recursive = false)
 	{
-		var full = Resolve(folderPath);
+		var full = Resolve(folderPath, out var sourceRoot);
 		if (!Directory.Exists(full))
 			yield break;
 
@@ -84,7 +101,7 @@ internal sealed class ContentVFSManager : IContentVFSManager, IEngineContentVFSM
 
 		foreach (var file in Directory.EnumerateFiles(full, "*", option))
 		{
-			var relative = Path.GetRelativePath(_root, file);
+			var relative = Path.GetRelativePath(sourceRoot, file);
 			yield return new ContentPath(relative);
 		}
 	}
