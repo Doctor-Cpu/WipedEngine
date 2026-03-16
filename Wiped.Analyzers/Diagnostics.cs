@@ -94,4 +94,22 @@ public static class Diagnostics
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true
 	);
+
+	public static readonly DiagnosticDescriptor MustHaveAttrIsNotAttr = new(
+		id: "ENG011",
+    	title: "MustHaveAttribute requires an attribute type",
+        messageFormat: "Type '{0}' used in MustHaveAttribute must be an attribute",
+		category: "Engine.Diagnostics",
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor MustHaveAttrMissing = new(
+		id: "ENG012",
+		title: "Missing required attribute",
+		messageFormat: "Type '{0}' must have attribute '{1}' to be used as this generic parameter",
+		category: "Engine.Diagnostics",
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
 }
