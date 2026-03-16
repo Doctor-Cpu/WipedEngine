@@ -4,5 +4,5 @@ namespace Wiped.Shared.Localization;
 
 public static class SharedTextLocalizationHelpers
 {
-	public static readonly ContentPath TextPath = new("Local/Text");
+	public static readonly ContentPath TextPath = new("Assets/Local/Text");
 }

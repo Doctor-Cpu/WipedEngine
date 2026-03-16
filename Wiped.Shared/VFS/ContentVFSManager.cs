@@ -7,8 +7,10 @@ namespace Wiped.Shared.VFS;
 [AutoBind(typeof(IContentVFSManager), typeof(IEngineContentVFSManager))]
 internal sealed class ContentVFSManager : IContentVFSManager, IEngineContentVFSManager
 {
-	private List<string> _roots = default!;
 	private bool _initialized;
+
+	private readonly Dictionary<ContentPath, string> _files = [];
+	private readonly Dictionary<ContentPath, string> _directories = [];
 
 	public void Bootstrap(params string[] roots)
 	{
@@ -18,8 +20,6 @@ internal sealed class ContentVFSManager : IContentVFSManager, IEngineContentVFSM
 		if (!roots.Any())
 			throw new InvalidOperationException($"ContentRoot not provided");
 
-		_roots = new(roots.Length);
-
 		foreach (var root in roots)
 		{
 			var fullRoot = Path.GetFullPath(root);
@@ -27,7 +27,21 @@ internal sealed class ContentVFSManager : IContentVFSManager, IEngineContentVFSM
 			if (!Directory.Exists(fullRoot))
 				throw new DirectoryNotFoundException(fullRoot);
 
-			_roots.Add(fullRoot);
+			foreach (var file in Directory.EnumerateFiles(fullRoot, "*", SearchOption.AllDirectories))
+			{
+				var relative = Path.GetRelativePath(fullRoot, file);
+				var cp = new ContentPath(relative);
+				_files[cp] = file;
+			}
+
+			foreach (var dir in Directory.EnumerateDirectories(fullRoot, "*", SearchOption.AllDirectories))
+			{
+				var relative = Path.GetRelativePath(fullRoot, dir);
+				var cp = new ContentPath(relative);
+				_directories[cp] = dir;
+			}
+
+			_directories[ContentPath.Root] = fullRoot;
 		}
 
 		_initialized = true;
@@ -41,32 +55,29 @@ internal sealed class ContentVFSManager : IContentVFSManager, IEngineContentVFSM
     }
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private string Resolve(ContentPath path, out string sourceRoot)
+	private bool TryResolveFile(ContentPath path, [NotNullWhen(true)] out string? full)
 	{
 		EnsureInitialized();
-		foreach (var root in _roots)
-		{
-			var full = Path.Combine(root, path.ToString());
-			if (!File.Exists(full) && !Directory.Exists(full))
-				continue;
 
-			sourceRoot = root;
-			return full;
-		}
+		return _files.TryGetValue(path, out full);
+	}
 
-		throw new FileNotFoundException(path.ToString());
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private bool TryResolveDirectory(ContentPath path, [NotNullWhen(true)] out string? full)
+	{
+		EnsureInitialized();
+
+		return _directories.TryGetValue(path, out full);
 	}
 
 	public Stream? GetFile(ContentPath path)
 	{
-		var full = Resolve(path, out _);
-		return File.Exists(full) ? File.OpenRead(full) : null;
+		return TryResolveFile(path, out var full) ? File.OpenRead(full) : null;
 	}
 
 	public Stream GetFileOrThrow(ContentPath path)
 	{
-		var full = Resolve(path, out _);
-		if (!File.Exists(full))
+		if (!TryResolveFile(path, out var full))
 			throw new FileNotFoundException($"{path}");
 
 		return File.OpenRead(full);
@@ -74,8 +85,7 @@ internal sealed class ContentVFSManager : IContentVFSManager, IEngineContentVFSM
 
 	public bool TryGetFile(ContentPath path, [NotNullWhen(true)] out Stream? file)
 	{
-		var full = Resolve(path, out _);
-		if (!File.Exists(full))
+		if (!TryResolveFile(path, out var full))
 		{
 			file = null;
 			return false;
@@ -93,16 +103,23 @@ internal sealed class ContentVFSManager : IContentVFSManager, IEngineContentVFSM
 
     public IEnumerable<ContentPath> Enumerate(ContentPath folderPath, bool recursive = false)
 	{
-		var full = Resolve(folderPath, out var sourceRoot);
-		if (!Directory.Exists(full))
-			yield break;
+		EnsureInitialized();
 
-		var option = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-
-		foreach (var file in Directory.EnumerateFiles(full, "*", option))
+		if (recursive)
 		{
-			var relative = Path.GetRelativePath(sourceRoot, file);
-			yield return new ContentPath(relative);
+			foreach (var path in _files.Keys)
+			{
+				if (path.IsDescendentOf(folderPath))
+					yield return path;
+			}
+		}
+		else
+		{
+			foreach (var path in _files.Keys)
+			{
+				if (path.IsDirectChildOf(folderPath))
+					yield return path;
+			}
 		}
 	}
 }
