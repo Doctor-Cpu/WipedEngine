@@ -1,4 +1,4 @@
-using Wiped.Shared.Localization;
+using Wiped.Shared.Localization.Text;
 using Wiped.Shared.Reflection;
 
 namespace Wiped.Tools;

@@ -70,6 +70,8 @@ internal sealed class ContentVFSManager : IContentVFSManager, IEngineContentVFSM
 		return _directories.TryGetValue(path, out full);
 	}
 
+	public bool TryGetAbsolutePath(ContentPath path, [NotNullWhen(true)] out string? absolutePath) => TryResolveFile(path, out absolutePath);
+
 	public Stream? GetFile(ContentPath path)
 	{
 		return TryResolveFile(path, out var full) ? File.OpenRead(full) : null;
@@ -119,6 +121,73 @@ internal sealed class ContentVFSManager : IContentVFSManager, IEngineContentVFSM
 			{
 				if (path.IsDirectChildOf(folderPath))
 					yield return path;
+			}
+		}
+	}
+
+    public IEnumerable<ContentPath> EnumerateDirectories(ContentPath folderPath, bool recursive = false)
+	{
+		EnsureInitialized();
+
+		if (recursive)
+		{
+			foreach (var path in _directories.Keys)
+			{
+				if (path.IsDescendentOf(folderPath))
+					yield return path;
+			}
+		}
+		else
+		{
+			foreach (var path in _directories.Keys)
+			{
+				if (path.IsDirectChildOf(folderPath))
+					yield return path;
+			}
+		}
+	}
+
+    public IEnumerable<string> EnumerateAbsolute(ContentPath folderPath, bool recursive = false)
+	{
+		EnsureInitialized();
+
+		if (recursive)
+		{
+			foreach (var (path, absolute) in _files)
+			{
+				if (path.IsDescendentOf(folderPath))
+					yield return absolute;
+			}
+		}
+		else
+		{
+			foreach (var (path, absolute) in _files)
+			{
+				if (path.IsDirectChildOf(folderPath))
+					yield return absolute;
+			}
+		}
+	}
+
+    public IEnumerable<string> EnumerateDirectoriesAbsolute(ContentPath folderPath, bool recursive = false)
+	{
+		EnsureInitialized();
+
+		if (recursive)
+		{
+			foreach (var (path, absolute) in _directories)
+			{
+				if (path.IsDescendentOf(folderPath))
+					yield return absolute;
+			}
+		}
+		else
+		{
+			foreach (var (path, absolute) in _directories)
+			{
+				if (path.IsDirectChildOf(folderPath))
+
+					yield return absolute;
 			}
 		}
 	}
