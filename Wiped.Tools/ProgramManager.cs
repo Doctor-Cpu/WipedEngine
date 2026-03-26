@@ -13,7 +13,7 @@ internal sealed class ProgramManager : IProgramManager, IEngineProgramManager, I
 	[Dependency] private readonly IoCDynamic<ILifecycleManager> _lifecycle = default!;
 	[Dependency] private readonly IoCDynamic<ITextLocalizationManager> _textLocalization = default!;
 
-	public Type[] After => [typeof(ILifecycleManager), typeof(ITextLocalizationManager)];
+	public Type[] After => [typeof(ILifecycleManager)];
 
 	private readonly Dictionary<string, BaseTool> _byName = new(StringComparer.OrdinalIgnoreCase);
 	private readonly Dictionary<Type, BaseTool> _byType = [];
