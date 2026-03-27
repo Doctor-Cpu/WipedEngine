@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Wiped.Shared.IoC;
 using Wiped.Shared.Lifecycle;
+using Wiped.Shared.Localization.Text;
 using Wiped.Shared.Serialization.Schema;
 using Wiped.Shared.VFS;
 
@@ -14,7 +15,7 @@ internal sealed class SerialiedTypeRegistryManager : ISerializedTypeRegistryMana
 	public Type[] After => [typeof(ILifecycleManager)];
 
 	private readonly Dictionary<Type, SerializedType> _byType = [];
-	private readonly Dictionary<string, SerializedType> _byName = new(StringComparer.Ordinal);
+	private readonly Dictionary<TextLocId, SerializedType> _byName = [];
 
 	public void Initialize()
 	{

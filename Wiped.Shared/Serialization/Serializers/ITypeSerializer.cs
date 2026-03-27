@@ -4,7 +4,7 @@ namespace Wiped.Shared.Serialization.Serializers;
 
 // exists purely as generics can easily be put in a list
 // actual implementation that is exposed is BaseTypeSerializer
-[Reflectable]
+[ReflectableBaseUsage]
 internal interface ITypeSerializer
 {
 	Type TargetType { get; }

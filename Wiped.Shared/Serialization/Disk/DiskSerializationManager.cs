@@ -10,6 +10,7 @@ internal sealed class DiskSerializationManager : IDiskSerializationManager
 
 	public void Save<T>(ContentPath path, T obj)
 	{
+		throw new NotImplementedException();
 	}
 
 	public T Load<T>(ContentPath path)

@@ -3,7 +3,7 @@ using Wiped.Shared.Serialization.Schema;
 
 namespace Wiped.Shared.Serialization;
 
-[Reflectable]
+[ReflectableBaseUsage]
 internal interface ISerializedTypeProvider
 {
     IEnumerable<SerializedType> GetSerializedTypes();

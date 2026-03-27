@@ -1,4 +1,4 @@
-using Wiped.Shared.Localization;
+using Wiped.Shared.Localization.Text;
 
 namespace Wiped.Shared.Serialization.Disk;
 
