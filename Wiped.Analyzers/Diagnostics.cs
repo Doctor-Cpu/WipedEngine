@@ -112,4 +112,22 @@ public static class Diagnostics
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true
 	);
+
+	public static readonly DiagnosticDescriptor HotReloadableAfterNotReloadable = new(
+		id: "ENG013",
+		title: "Invalid hot reload dependency",
+		messageFormat: "Type '{0}' used in 'After' on '{1}' must be hot reloadable",
+		category: "Engine.HotReloading",
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor HotReloadableBeforeNotReloadable = new(
+		id: "ENG014",
+		title: "Invalid hot reload dependency",
+		messageFormat: "Type '{0}' used in 'Before' on '{1}' must be hot reloadable",
+		category: "Engine.HotReloading",
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
 }
