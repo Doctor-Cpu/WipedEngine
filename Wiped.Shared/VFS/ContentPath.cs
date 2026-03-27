@@ -79,6 +79,48 @@ public readonly struct ContentPath : IEquatable<ContentPath>
 		_path = Normalize(path);
 	}
 
+	public static ContentPath operator + (ContentPath a, ContentPath b)
+	{
+		if (string.IsNullOrWhiteSpace(a._path))
+			return b;
+
+		if (string.IsNullOrWhiteSpace(b._path))
+			return a;
+
+		return new ContentPath($"{a._path}/{b._path}");
+	}
+
+	public ContentPath WithExtension(string extension)
+	{
+		if (string.IsNullOrWhiteSpace(extension) || string.IsNullOrWhiteSpace(_path))
+			return this;
+
+		if (!extension.StartsWith('.'))
+			extension = "." + extension;
+
+		return new ContentPath(_path + extension);
+	}
+
+	public string GetFileName()
+	{
+		if (string.IsNullOrWhiteSpace(_path))
+			return string.Empty;
+
+		var lastSlash = _path.LastIndexOf('/');
+
+		return lastSlash >= 0
+			? _path[(lastSlash + 1)..]
+			: _path;
+	}
+
+	public string GetExtension()
+	{
+		var fileName = GetFileName();
+		var lastDot = fileName.LastIndexOf('.');
+
+		return lastDot >= 0 ? fileName[lastDot..] : string.Empty;
+	}
+
 	public override string ToString() => _path;
 
     public bool Equals(ContentPath other) => string.Equals(_path, other._path, StringComparison.Ordinal);

@@ -14,4 +14,5 @@ public interface IContentVFSManager : IManager
 	Task StreamFileAsync(ContentPath path, Func<Stream, Task> consumer);
 
     IEnumerable<ContentPath> Enumerate(ContentPath folderPath, bool recursive = false);
+    IEnumerable<ContentPath> EnumerateDirectories(ContentPath folderPath, bool recursive = false);
 }

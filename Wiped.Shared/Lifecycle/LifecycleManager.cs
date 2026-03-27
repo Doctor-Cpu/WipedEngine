@@ -1,3 +1,4 @@
+using Wiped.Shared.Diagnostics;
 using Wiped.Shared.IoC;
 using Wiped.Shared.Reflection;
 using Wiped.Shared.VFS;
@@ -39,7 +40,7 @@ internal sealed class LifecycleManager : ILifecycleManager, IHotReloadable
 		return instance;
 	}
 
-    public IEnumerable<T> GetAll<T>()
+    public IEnumerable<T> GetAll<[MustHaveAttribute(typeof(ReflectableBaseUsageAttribute))] T>() where T : notnull
 	{
 		// ioc owned
 		foreach (var instance in IoCManager.GetAllResolved())

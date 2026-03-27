@@ -2,5 +2,6 @@ namespace Wiped.Roslyn;
 
 public static partial class EngineTypes
 {
-	public const string ReflectableAttribute = "Wiped.Shared.Reflection.ReflectableAttribute";
+	public const string ReflectableBaseUsageAttribute = "Wiped.Shared.Reflection.ReflectableBaseUsageAttribute";
+	public const string ReflectableAttributeUsageAttribute = "Wiped.Shared.Reflection.ReflectableAttributeUsageAttribute";
 }

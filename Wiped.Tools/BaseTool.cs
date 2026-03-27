@@ -1,9 +1,9 @@
-using Wiped.Shared.Localization;
+using Wiped.Shared.Localization.Text;
 using Wiped.Shared.Reflection;
 
 namespace Wiped.Tools;
 
-[Reflectable]
+[ReflectableBaseUsage]
 public abstract class BaseTool
 {
 	public abstract string ToolName { get; }

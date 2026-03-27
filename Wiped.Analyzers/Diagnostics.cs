@@ -77,9 +77,62 @@ public static class Diagnostics
 		isEnabledByDefault: true
 	);
 
+	public static readonly DiagnosticDescriptor ReflectableBaseUsageMustBeUnsealed = new(
+		id: "ENG009",
+    	title: "ReflectableBaseUsage applied to a sealed class",
+		messageFormat: "Type '{0}' has the ReflectableBaseUsage attribute when it cannot be inherited",
+		category: "Engine.Reflection",
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor ReflectableAttrUsageOnNonAttr = new(
+		id: "ENG010",
+    	title: "ReflectableAttributeUsage applied to a non-attribute",
+		messageFormat: "Type '{0}' has the ReflectableAttributeUsage attribute when it is not an attribute itself",
+		category: "Engine.Reflection",
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor MustHaveAttrIsNotAttr = new(
+		id: "ENG011",
+    	title: "MustHaveAttribute requires an attribute type",
+        messageFormat: "Type '{0}' used in MustHaveAttribute must be an attribute",
+		category: "Engine.Diagnostics",
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor MustHaveAttrMissing = new(
+		id: "ENG012",
+		title: "Missing required attribute",
+		messageFormat: "Type '{0}' must have attribute '{1}' to be used as this generic parameter",
+		category: "Engine.Diagnostics",
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor HotReloadableAfterNotReloadable = new(
+		id: "ENG013",
+		title: "Invalid hot reload dependency",
+		messageFormat: "Type '{0}' used in 'After' on '{1}' must be hot reloadable",
+		category: "Engine.HotReloading",
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor HotReloadableBeforeNotReloadable = new(
+		id: "ENG014",
+		title: "Invalid hot reload dependency",
+		messageFormat: "Type '{0}' used in 'Before' on '{1}' must be hot reloadable",
+		category: "Engine.HotReloading",
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
 
     public static readonly DiagnosticDescriptor DiskDefinitionMustBeSealed = new(
-		id: "ENG009",
+		id: "ENG015",
         title: "DiskDefinition must be sealed",
         messageFormat: "Type '{0}' marked with [DiskDefinition] must be sealed",
         category: "Engine.Disk",
@@ -88,7 +141,7 @@ public static class Diagnostics
     );
 
     public static readonly DiagnosticDescriptor DiskDefinitionParameterlessCtorRequired = new(
-		id: "ENG010",
+		id: "ENG016",
         title: "DiskDefinition must have a parameterless constructor",
         messageFormat: "Type '{0}' marked with [DiskDefinition] must have a public parameterless constructor",
         category: "Engine.Disk",
@@ -97,12 +150,11 @@ public static class Diagnostics
     );
 
     public static readonly DiagnosticDescriptor DiskDefinitionAbstractTypeNotAllowed = new(
-		id: "ENG011",
+		id: "ENG017",
         title: "DiskDefinition cannot be abstract",
         messageFormat: "Type '{0}' marked with [DiskDefinition] cannot be abstract",
         category: "Engine.Disk",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true
     );
-
 }

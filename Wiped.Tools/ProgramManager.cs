@@ -1,6 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
+using Wiped.Localization.Text;
 using Wiped.Shared.IoC;
 using Wiped.Shared.Lifecycle;
+using Wiped.Shared.Localization.Text;
 using Wiped.Shared.VFS;
 
 namespace Wiped.Tools;
@@ -9,6 +11,7 @@ namespace Wiped.Tools;
 internal sealed class ProgramManager : IProgramManager, IEngineProgramManager, IHotReloadable
 {
 	[Dependency] private readonly IoCDynamic<ILifecycleManager> _lifecycle = default!;
+	[Dependency] private readonly IoCDynamic<ITextLocalizationManager> _textLocalization = default!;
 
 	public Type[] After => [typeof(ILifecycleManager)];
 
@@ -17,14 +20,9 @@ internal sealed class ProgramManager : IProgramManager, IEngineProgramManager, I
 
 	private string? _toRun;
 
-	private const string LauncherIntro = """
-	Welcome to the tool launcher.
-	Launch tools with the program name followed by any arguments.
-	For a list of commands use the "help" command.
-	For info on what a command does use "help" followed by the command name.
-	""";
-
-	private const string LauncherPrompt = "> ";
+	private static readonly TextLocId LauncherIntro = "tool-launcher-intro";
+	private static readonly TextLocId LauncherPrompt = "tool-launcher-prompt";
+	private static readonly TextLocId LauncherUnknownTool = "tool-launcher-unknown-tool";
 
 	public void Initialize()
 	{
@@ -44,7 +42,7 @@ internal sealed class ProgramManager : IProgramManager, IEngineProgramManager, I
 	public void RunLauncher()
 	{
 		Console.Clear();
-		
+
 		if (_toRun is { } toRun)
 		{
 			Load(toRun, []);
@@ -52,10 +50,12 @@ internal sealed class ProgramManager : IProgramManager, IEngineProgramManager, I
 		}
 
 
-		Console.WriteLine(LauncherIntro);
+		var intro = _textLocalization.Value.GetString(LauncherIntro);
+		var prompt = _textLocalization.Value.GetString(LauncherPrompt);
+		Console.WriteLine(intro);
 		while (true)
 		{
-			Console.Write(LauncherPrompt);
+			Console.Write(prompt);
 			var input = Console.ReadLine();
 
 			if (string.IsNullOrWhiteSpace(input))
@@ -64,7 +64,8 @@ internal sealed class ProgramManager : IProgramManager, IEngineProgramManager, I
 			var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 			if (!TryGet(parts[0], out var tool))
 			{
-				Console.WriteLine($"Unrecognised tool {parts[0]}");
+				var error = _textLocalization.Value.GetString(LauncherUnknownTool, ("name", parts[0]));
+				Console.WriteLine(error);
 				continue;
 			}
 

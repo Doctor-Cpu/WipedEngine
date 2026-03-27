@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Wiped.Roslyn;
 
@@ -136,5 +137,38 @@ public static class SymbolHelpers
 		return value.ToString();
 	}
 
+	public static bool IsAttribute(this INamedTypeSymbol symbol, Compilation compilation)
+	{
+		if (symbol.TypeKind != TypeKind.Class)
+			return false;
+
+		var attr = compilation.GetTypeByMetadataName(SystemTypes.Attribute)!;
+
+		return symbol.InheritsFrom(attr);
+	}
+
 	public static Location GetLocation(this ISymbol symbol) => symbol.Locations.FirstOrDefault() ?? Location.None;
+
+	public static string FormatConstant(this TypedConstant constant)
+	{
+		if (constant.Value == null)
+			return "null";
+
+		return constant.Kind switch
+		{
+			TypedConstantKind.Primitive => constant.Value switch
+			{
+				string s => $"\"{s}\"",
+				char c => $"'{c}'",
+				bool b => b ? "true" : "false",
+				_ => constant.Value.ToString()
+			},
+
+			TypedConstantKind.Enum => $"{constant.Type!.ToDisplayString()}.{constant.Value}",
+
+			TypedConstantKind.Type => $"typeof({((ITypeSymbol)constant.Value).ToDisplayString()})",
+
+			_ => constant.Value.ToString()
+		};
+	}
 }

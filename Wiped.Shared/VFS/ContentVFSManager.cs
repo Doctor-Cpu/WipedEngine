@@ -7,21 +7,42 @@ namespace Wiped.Shared.VFS;
 [AutoBind(typeof(IContentVFSManager), typeof(IEngineContentVFSManager))]
 internal sealed class ContentVFSManager : IContentVFSManager, IEngineContentVFSManager
 {
-	private string _root = default!;
 	private bool _initialized;
 
-	public void Bootstrap(string root)
+	private readonly Dictionary<ContentPath, string> _files = [];
+	private readonly Dictionary<ContentPath, string> _directories = [];
+
+	public void Bootstrap(params string[] roots)
 	{
 		if (_initialized)
 			throw new InvalidOperationException("VFS already bootstrapped");
 
-		if (string.IsNullOrWhiteSpace(root))
+		if (!roots.Any())
 			throw new InvalidOperationException($"ContentRoot not provided");
 
-		_root = Path.GetFullPath(root);
+		foreach (var root in roots)
+		{
+			var fullRoot = Path.GetFullPath(root);
 
-		if (!Directory.Exists(_root))
-			throw new DirectoryNotFoundException(_root);
+			if (!Directory.Exists(fullRoot))
+				throw new DirectoryNotFoundException(fullRoot);
+
+			foreach (var file in Directory.EnumerateFiles(fullRoot, "*", SearchOption.AllDirectories))
+			{
+				var relative = Path.GetRelativePath(fullRoot, file);
+				var cp = new ContentPath(relative);
+				_files[cp] = file;
+			}
+
+			foreach (var dir in Directory.EnumerateDirectories(fullRoot, "*", SearchOption.AllDirectories))
+			{
+				var relative = Path.GetRelativePath(fullRoot, dir);
+				var cp = new ContentPath(relative);
+				_directories[cp] = dir;
+			}
+
+			_directories[ContentPath.Root] = fullRoot;
+		}
 
 		_initialized = true;
 	}
@@ -34,22 +55,31 @@ internal sealed class ContentVFSManager : IContentVFSManager, IEngineContentVFSM
     }
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private string Resolve(ContentPath path)
+	private bool TryResolveFile(ContentPath path, [NotNullWhen(true)] out string? full)
 	{
 		EnsureInitialized();
-		return Path.Combine(_root, path.ToString());
+
+		return _files.TryGetValue(path, out full);
 	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private bool TryResolveDirectory(ContentPath path, [NotNullWhen(true)] out string? full)
+	{
+		EnsureInitialized();
+
+		return _directories.TryGetValue(path, out full);
+	}
+
+	public bool TryGetAbsolutePath(ContentPath path, [NotNullWhen(true)] out string? absolutePath) => TryResolveFile(path, out absolutePath);
 
 	public Stream? GetFile(ContentPath path)
 	{
-		var full = Resolve(path);
-		return File.Exists(full) ? File.OpenRead(full) : null;
+		return TryResolveFile(path, out var full) ? File.OpenRead(full) : null;
 	}
 
 	public Stream GetFileOrThrow(ContentPath path)
 	{
-		var full = Resolve(path);
-		if (!File.Exists(full))
+		if (!TryResolveFile(path, out var full))
 			throw new FileNotFoundException($"{path}");
 
 		return File.OpenRead(full);
@@ -57,13 +87,12 @@ internal sealed class ContentVFSManager : IContentVFSManager, IEngineContentVFSM
 
 	public bool TryGetFile(ContentPath path, [NotNullWhen(true)] out Stream? file)
 	{
-		var full = Resolve(path);
-		if (!File.Exists(full))
+		if (!TryResolveFile(path, out var full))
 		{
 			file = null;
 			return false;
 		}
-		
+
 		file = File.OpenRead(full);
 		return true;
 	}
@@ -76,16 +105,90 @@ internal sealed class ContentVFSManager : IContentVFSManager, IEngineContentVFSM
 
     public IEnumerable<ContentPath> Enumerate(ContentPath folderPath, bool recursive = false)
 	{
-		var full = Resolve(folderPath);
-		if (!Directory.Exists(full))
-			yield break;
+		EnsureInitialized();
 
-		var option = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-
-		foreach (var file in Directory.EnumerateFiles(full, "*", option))
+		if (recursive)
 		{
-			var relative = Path.GetRelativePath(_root, file);
-			yield return new ContentPath(relative);
+			foreach (var path in _files.Keys)
+			{
+				if (path.IsDescendentOf(folderPath))
+					yield return path;
+			}
+		}
+		else
+		{
+			foreach (var path in _files.Keys)
+			{
+				if (path.IsDirectChildOf(folderPath))
+					yield return path;
+			}
+		}
+	}
+
+    public IEnumerable<ContentPath> EnumerateDirectories(ContentPath folderPath, bool recursive = false)
+	{
+		EnsureInitialized();
+
+		if (recursive)
+		{
+			foreach (var path in _directories.Keys)
+			{
+				if (path.IsDescendentOf(folderPath))
+					yield return path;
+			}
+		}
+		else
+		{
+			foreach (var path in _directories.Keys)
+			{
+				if (path.IsDirectChildOf(folderPath))
+					yield return path;
+			}
+		}
+	}
+
+    public IEnumerable<string> EnumerateAbsolute(ContentPath folderPath, bool recursive = false)
+	{
+		EnsureInitialized();
+
+		if (recursive)
+		{
+			foreach (var (path, absolute) in _files)
+			{
+				if (path.IsDescendentOf(folderPath))
+					yield return absolute;
+			}
+		}
+		else
+		{
+			foreach (var (path, absolute) in _files)
+			{
+				if (path.IsDirectChildOf(folderPath))
+					yield return absolute;
+			}
+		}
+	}
+
+    public IEnumerable<string> EnumerateDirectoriesAbsolute(ContentPath folderPath, bool recursive = false)
+	{
+		EnsureInitialized();
+
+		if (recursive)
+		{
+			foreach (var (path, absolute) in _directories)
+			{
+				if (path.IsDescendentOf(folderPath))
+					yield return absolute;
+			}
+		}
+		else
+		{
+			foreach (var (path, absolute) in _directories)
+			{
+				if (path.IsDirectChildOf(folderPath))
+
+					yield return absolute;
+			}
 		}
 	}
 }

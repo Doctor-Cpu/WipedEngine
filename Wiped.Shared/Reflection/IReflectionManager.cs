@@ -1,13 +1,16 @@
 using System.Reflection;
+using Wiped.Shared.Diagnostics;
 using Wiped.Shared.IoC;
 
 namespace Wiped.Shared.Reflection;
 
 public interface IReflectionManager : IManager
 {
-	IEnumerable<Type> GetAllDerivedTypes<TBase>();
+	IEnumerable<Type> GetAllDerivedTypes<[MustHaveAttribute(typeof(ReflectableBaseUsageAttribute))] TBase>()
+		where TBase : notnull;
 
-	//IEnumerable<KeyValuePair<Type, TAttribute>> GetTypesWithAttribute<TAttribute>(bool allowUnimplementedTypes = false) where TAttribute : Attribute;
+	IEnumerable<KeyValuePair<Type, TAttribute>> GetTypesWithAttribute<[MustHaveAttribute(typeof(ReflectableAttributeUsageAttribute))] TAttribute>(bool allowUnimplementedTypes = false)
+		where TAttribute : Attribute;
 
 	IEnumerable<MemberAttributeInfo<TAttribute>> GetMemberAttributes<TAttribute>(Type type) where TAttribute : Attribute;
 
