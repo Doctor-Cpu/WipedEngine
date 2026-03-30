@@ -121,6 +121,11 @@ public readonly struct ContentPath : IEquatable<ContentPath>
 		return lastDot >= 0 ? fileName[lastDot..] : string.Empty;
 	}
 
+	public string ToOsRelative()
+	{
+		return _path.Replace('/', Path.DirectorySeparatorChar);
+	}
+
 	public override string ToString() => _path;
 
     public bool Equals(ContentPath other) => string.Equals(_path, other._path, StringComparison.Ordinal);

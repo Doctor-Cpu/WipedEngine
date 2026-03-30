@@ -12,6 +12,8 @@ internal sealed class ContentVFSManager : IContentVFSManager, IEngineContentVFSM
 	private readonly Dictionary<ContentPath, string> _files = [];
 	private readonly Dictionary<ContentPath, string> _directories = [];
 
+	private const string ApplicationName = "WipedEngine"; // TODO: replace with a project manifest with this as a field
+
 	public void Bootstrap(params string[] roots)
 	{
 		if (_initialized)
@@ -190,5 +192,20 @@ internal sealed class ContentVFSManager : IContentVFSManager, IEngineContentVFSM
 					yield return absolute;
 			}
 		}
+	}
+
+	public Stream WriteDataDir(ContentPath relative) => WriteDir(relative, OSPaths.GetDataDir(ApplicationName));
+	public Stream WriteConfigDir(ContentPath relative) => WriteDir(relative, OSPaths.GetConfigDir(ApplicationName));
+	public Stream WriteCacheDir(ContentPath relative) => WriteDir(relative, OSPaths.GetCacheDir(ApplicationName));
+
+	private static Stream WriteDir(ContentPath relative, string root)
+	{
+		var osRelative = relative.ToOsRelative();
+		var full = Path.Combine(root, osRelative);
+
+		if (Path.GetDirectoryName(full) is { } directory)
+			Directory.CreateDirectory(directory);
+
+		return new FileStream(full, FileMode.Create, FileAccess.Write, FileShare.None);
 	}
 }
