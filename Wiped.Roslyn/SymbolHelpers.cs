@@ -61,6 +61,20 @@ public static class SymbolHelpers
 		return baseSymbol.GetAttributes().Any(a => SymbolComparer.Equals(a.AttributeClass?.OriginalDefinition, attributeSymbol?.OriginalDefinition));
 	}
 
+	public static bool HasAnyAttributes(this ISymbol baseSymbol, params INamedTypeSymbol[] attributeSymbols)
+	{
+		foreach (var attribute in baseSymbol.GetAttributes())
+		{
+			foreach (var attributeSymbol in attributeSymbols)
+			{
+				if (SymbolComparer.Equals(attribute.AttributeClass?.OriginalDefinition, attributeSymbol?.OriginalDefinition))
+					return true;
+			}
+		}
+
+		return false;
+	}
+
 	public static AttributeData? GetAttribute(this ISymbol baseSymbol, INamedTypeSymbol attributeSymbol)
 	{
 		foreach (var attribute in baseSymbol.GetAttributes())
@@ -70,6 +84,18 @@ public static class SymbolHelpers
 		}
 
 		return null;
+	}
+
+	public static IEnumerable<AttributeData> GetAttributes(this ISymbol baseSymbol, params INamedTypeSymbol[] attributeSymbols)
+	{
+		foreach (var attribute in baseSymbol.GetAttributes())
+		{
+			foreach (var attributeSymbol in attributeSymbols)
+			{
+				if (SymbolComparer.Equals(attribute.AttributeClass?.OriginalDefinition, attributeSymbol?.OriginalDefinition))
+					yield return attribute;
+			}
+		}
 	}
 
 	public static IEnumerable<AttributeData> GetAllAttributes(this ISymbol baseSymbol, INamedTypeSymbol attributeSymbol)

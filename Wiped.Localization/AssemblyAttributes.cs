@@ -1,3 +1,3 @@
 using Wiped.Shared;
 
-[assembly: ContentAssembly("Wiped.Localization")]
+[assembly: EngineAssembly("Wiped.Localization")]

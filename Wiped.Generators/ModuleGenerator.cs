@@ -17,28 +17,25 @@ public sealed partial class ModuleGenerator : IIncrementalGenerator
 
 	private static void GenerateModule(SourceProductionContext context, Compilation compilation)
 	{
-		if (compilation.GetTypeByMetadataName(ContentAssemblyAttribute) is not { } contentAssemblyAttribute)
+		if (!compilation.Assembly.IsWipedAssembly(compilation))
 			return;
 
-		if (!compilation.Assembly.HasAttribute(contentAssemblyAttribute))
-			return;
-
-		var source = BuildSource(compilation, contentAssemblyAttribute);
+		var source = BuildSource(compilation);
 		context.AddSource(FileName, source);
 	}
 
-	private static IEnumerable<string> GetModuleDependencies(Compilation compilation, INamedTypeSymbol contentAssemblyAttribute)
+	private static IEnumerable<string> GetModuleDependencies(Compilation compilation)
 	{
-		foreach (var assembly in compilation.GetContentAssemblies(contentAssemblyAttribute))
+		foreach (var assembly in compilation.GetWipedAssemblies())
 		{
-			var asmNamespace = assembly.GetGeneratorNamespace(compilation, contentAssemblyAttribute);
+			var asmNamespace = assembly.GetGeneratorNamespace(compilation);
 			var moduleName = $"{asmNamespace}.{ClassName}";
 
 			yield return $"{moduleName}.Instance";
 		}
 	}
 
-	private static string BuildSource(Compilation compilation, INamedTypeSymbol contentAssemblyAttribute)
+	private static string BuildSource(Compilation compilation)
 	{
 		var sb = new StringBuilder();
 		sb.AppendLine(
@@ -57,7 +54,7 @@ public sealed partial class ModuleGenerator : IIncrementalGenerator
 			"""
 		);
 
-		BuildDependencies(sb, compilation, contentAssemblyAttribute);
+		BuildDependencies(sb, compilation);
 		BuildIoC(sb, compilation);
 		BuildReflectionRegistry(sb, compilation);
 
@@ -70,9 +67,9 @@ public sealed partial class ModuleGenerator : IIncrementalGenerator
 		return sb.ToString();
 	}
 
-	private static void BuildDependencies(StringBuilder sb, Compilation compilation, INamedTypeSymbol contentAssemblyAttribute)
+	private static void BuildDependencies(StringBuilder sb, Compilation compilation)
 	{
-		var dependencies = GetModuleDependencies(compilation, contentAssemblyAttribute);
+		var dependencies = GetModuleDependencies(compilation);
 
 		if (!dependencies.Any())
 			return;

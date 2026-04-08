@@ -1,7 +1,7 @@
 namespace Wiped.Shared;
 
 [AttributeUsage(AttributeTargets.Assembly)]
-public sealed class ContentAssemblyAttribute(string rootNamespace) : Attribute, IWipedAssemblyAttribute
+internal sealed class EngineAssemblyAttribute(string rootNamespace) : Attribute, IWipedAssemblyAttribute
 {
 	string IWipedAssemblyAttribute.RootNamespace => rootNamespace;
 }

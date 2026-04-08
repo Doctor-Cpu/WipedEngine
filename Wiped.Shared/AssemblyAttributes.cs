@@ -1,3 +1,3 @@
 using Wiped.Shared;
 
-[assembly: ContentAssembly("Wiped.Shared")]
+[assembly: EngineAssembly("Wiped.Shared")]
