@@ -20,7 +20,6 @@ internal sealed class ProgramManager : IProgramManager, IEngineProgramManager, I
 
 	private string? _toRun;
 
-	private static readonly TextLocId LauncherIntro = "tool-launcher-intro";
 	private static readonly TextLocId LauncherPrompt = "tool-launcher-prompt";
 	private static readonly TextLocId LauncherUnknownTool = "tool-launcher-unknown-tool";
 
@@ -49,10 +48,9 @@ internal sealed class ProgramManager : IProgramManager, IEngineProgramManager, I
 			return;
 		}
 
+		Load<IntroTool>([]); // so people arent utterly clueless
 
-		var intro = _textLocalization.Value.GetString(LauncherIntro);
 		var prompt = _textLocalization.Value.GetString(LauncherPrompt);
-		Console.WriteLine(intro);
 		while (true)
 		{
 			Console.Write(prompt);

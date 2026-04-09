@@ -10,7 +10,6 @@ public sealed class HelpTool : BaseCliTool
 	[Dependency] private readonly IoCDynamic<ITextLocalizationManager> _textLocalization = default!;
 
 	public override string ToolName => "help";
-	public override TextLocId? ToolDesc => "tool-help-desc";
 
 	private static readonly TextLocId ProgramHelpText = "tool-help-program-help";
 
