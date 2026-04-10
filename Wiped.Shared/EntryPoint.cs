@@ -21,5 +21,10 @@ public static class EntryPoint
 
 		var hotReload = IoCManager.Resolve<IHotReloadManager>().Value;
 		hotReload.Initialize();
+
+		// everything initialized
+		// shutdown code to handle clean exiting below
+
+		Console.CancelKeyPress += (_, _) => hotReload.Shutdown();
 	}
 }
