@@ -1,4 +1,4 @@
-namespace Wiped.Tools;
+namespace Wiped.Tools.Tools;
 
 public abstract class BaseCliTool : BaseTool
 {

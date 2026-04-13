@@ -2,7 +2,7 @@ using Wiped.Localization.Text;
 using Wiped.Shared.IoC;
 using Wiped.Shared.Localization.Text;
 
-namespace Wiped.Tools;
+namespace Wiped.Tools.Tools;
 
 public sealed class HelpTool : BaseCliTool
 {

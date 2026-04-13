@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Wiped.Shared.IoC;
+using Wiped.Tools.Tools;
 
 namespace Wiped.Tools;
 

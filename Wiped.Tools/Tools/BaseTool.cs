@@ -1,7 +1,7 @@
 using Wiped.Shared.Localization.Text;
 using Wiped.Shared.Reflection;
 
-namespace Wiped.Tools;
+namespace Wiped.Tools.Tools;
 
 [ReflectableBaseUsage]
 public abstract class BaseTool

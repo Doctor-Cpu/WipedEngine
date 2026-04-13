@@ -7,6 +7,7 @@ using Wiped.Shared.Lifecycle;
 using Wiped.Shared.Localization.Text;
 using Wiped.Shared.VFS;
 using Wiped.Tools.CVars;
+using Wiped.Tools.Tools;
 
 namespace Wiped.Tools;
 
