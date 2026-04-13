@@ -4,31 +4,31 @@ using Wiped.Shared.Localization.Text;
 
 namespace Wiped.Tools;
 
-public sealed class HelpTool : BaseCliTool
+public sealed class UsageTool : BaseCliTool
 {
 	[Dependency] private readonly IoCDynamic<IEngineProgramManager> _programs = default!;
 	[Dependency] private readonly IoCDynamic<ITextLocalizationManager> _textLocalization = default!;
 
-	public override string ToolName => "help";
+	public override string ToolName => "usage";
 
-	private static readonly TextLocId ProgramHelpText = "tool-help-program-help";
+	private static readonly TextLocId UsageEntry = "tool-usage-program-usage";
 	private static readonly TextLocId UnknownToolError = "tool-generic-error-cli-unknown-tool";
+	private static readonly TextLocId MinArgError = "tool-generic-error-cli-little-args";
 
 	protected override void Run(string[] args)
 	{
-		if (!args.Any())
+		if (args.Length < 1)
 		{
-			foreach (var program in _programs.Value.GetAll())
-				PrintProgramHelp(program);
-
+			var error = _textLocalization.Value.GetString(MinArgError, ("expected", 1), ("got", args.Length));
+			PrintText(error);
 			return;
 		}
 
 		foreach (var arg in args)
 		{
-			if (_programs.Value.TryGet(arg, out var program))
+			if (_programs.Value.TryGet(arg, out var tool))
 			{
-				PrintProgramHelp(program);
+				PrintProgramUsage(tool);
 			}
 			else
 			{
@@ -38,9 +38,9 @@ public sealed class HelpTool : BaseCliTool
 		}
 	}
 
-	private void PrintProgramHelp(BaseTool program)
+	private void PrintProgramUsage(BaseTool program)
 	{
-		var text = _textLocalization.Value.GetString(ProgramHelpText, ("name", program.ToolName), ("desc", program.ToolDesc));
+		var text = _textLocalization.Value.GetString(UsageEntry, ("name", program.ToolName), ("usage", program.ToolUsage));
 		PrintText(text);
 	}
 }

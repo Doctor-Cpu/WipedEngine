@@ -6,6 +6,9 @@ public sealed class ExitTool : BaseCliTool
 
 	protected override void Run(string[] args)
 	{
-		Environment.Exit(0);
+		if (args.Length >= 1 && int.TryParse(args[0], out var exitCode))
+			Environment.Exit(exitCode);
+		else
+			Environment.Exit(0);
 	}
 }

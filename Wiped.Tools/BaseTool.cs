@@ -7,7 +7,8 @@ namespace Wiped.Tools;
 public abstract class BaseTool
 {
 	public abstract string ToolName { get; }
-	public virtual TextLocId? ToolDesc => $"tool-{ToolName}-desc";
+	public virtual TextLocId ToolDesc => $"tool-{ToolName}-desc";
+	public virtual TextLocId ToolUsage => $"tool-{ToolName}-usage";
 
 	public abstract void Start(string[] args);
 }

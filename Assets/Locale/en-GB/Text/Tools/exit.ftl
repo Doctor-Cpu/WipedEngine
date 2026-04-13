@@ -1,1 +1,2 @@
-tool-exit-desc = Exit the tool launcher
+tool-exit-desc = Exit the tool launcher.
+tool-exit-usage = (exit code)
