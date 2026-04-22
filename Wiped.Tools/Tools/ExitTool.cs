@@ -1,3 +1,5 @@
+using Wiped.Shared;
+
 namespace Wiped.Tools.Tools;
 
 public sealed class ExitTool : BaseCliTool
@@ -7,8 +9,8 @@ public sealed class ExitTool : BaseCliTool
 	protected override void Run(string[] args)
 	{
 		if (args.Length >= 1 && int.TryParse(args[0], out var exitCode))
-			Environment.Exit(exitCode);
+			EntryPoint.Stop(exitCode);
 		else
-			Environment.Exit(0);
+			EntryPoint.Stop();
 	}
 }
